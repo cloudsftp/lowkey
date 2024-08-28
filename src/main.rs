@@ -1,9 +1,6 @@
 use anyhow::Error;
 use reqwest::Client;
-use rusttwald::apis::{
-    configuration::{ApiKey, Configuration},
-    customer_api::customer_list_customers,
-};
+use rusttwald::apis::configuration::{ApiKey, Configuration};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -37,12 +34,12 @@ async fn main() -> Result<(), Error> {
 
 mod model {
     use anyhow::Error;
+    use futures::stream::FuturesUnordered;
+    use futures::TryStreamExt;
     use rusttwald::apis::{
         configuration::Configuration, customer_api::customer_list_customers,
         project_api::project_list_projects,
     };
-    use tokio::sync::mpsc;
-    use tokio_stream::StreamExt;
 
     #[derive(Debug, Clone)]
     pub struct Project {
@@ -55,49 +52,33 @@ mod model {
         pub projects: Vec<Project>,
     }
 
-    pub async fn get_projects(
-        config: &Configuration,
-        customer_id: &str,
-    ) -> Result<Vec<Project>, Error> {
-        let customers = get_customers(config).await?;
-        Ok(customers
-            .iter()
-            .map(|customer| Project {
-                id: "bla".to_string(),
+    impl Customer {
+        async fn from_id(config: &Configuration, customer_id: String) -> Result<Self, Error> {
+            let projects =
+                project_list_projects(config, Some(&customer_id), None, None, None, None)
+                    .await?
+                    .iter()
+                    .map(|project_response| Project {
+                        id: project_response.id.to_string(),
+                    })
+                    .collect();
+
+            Ok(Customer {
+                id: customer_id.to_string(),
+                projects,
             })
-            .collect())
+        }
     }
 
     pub async fn get_customers(config: &Configuration) -> Result<Vec<Customer>, Error> {
-        let customer_ids: Vec<_> = customer_list_customers(config, None, None, None, None, None)
-            .await?
-            .iter()
-            .map(|customer| customer.customer_id.to_string())
-            .collect();
-
-        let customers = tokio_stream::iter(customer_ids.clone())
-            .map(|id| async move { () })
-            .collect::<Vec<_>>()
-            .await;
-
-        let mut customers = Vec::new();
-        /*
-        while let Some(customer) = customer_receiver.recv().await {
-            customers.push(customer)
-        }
-         */
-        for id in customer_ids {
-            let projects = project_list_projects(config, Some(&id), None, None, None, None)
+        Ok(FuturesUnordered::from_iter(
+            customer_list_customers(config, None, None, None, None, None)
                 .await?
                 .iter()
-                .map(|project_response| Project {
-                    id: project_response.id.to_string(),
-                })
-                .collect();
-
-            customers.push(Customer { id, projects })
-        }
-
-        Ok(customers)
+                .map(|customer| customer.customer_id.to_string())
+                .map(|id| Customer::from_id(config, id)),
+        )
+        .try_collect()
+        .await?)
     }
 }
