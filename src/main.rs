@@ -71,7 +71,7 @@ mod model {
     }
 
     pub async fn get_customers(config: &Configuration) -> Result<Vec<Customer>, Error> {
-        Ok(FuturesUnordered::from_iter(
+        FuturesUnordered::from_iter(
             customer_list_customers(config, None, None, None, None, None)
                 .await?
                 .iter()
@@ -79,6 +79,6 @@ mod model {
                 .map(|id| Customer::from_id(config, id)),
         )
         .try_collect()
-        .await?)
+        .await
     }
 }
