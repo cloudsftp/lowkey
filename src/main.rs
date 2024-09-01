@@ -1,10 +1,18 @@
-use anyhow::Error;
+use actix_web::{web, App, HttpServer};
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
+use std::env;
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
-    let api_token = env!("MITTWALD_API_TOKEN");
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| App::new().route("/hey", web::get().to(hello_mittwald)))
+        .bind(("0.0.0.0", 6670))?
+        .run()
+        .await
+}
+
+async fn hello_mittwald() -> Result<String, actix_web::Error> {
+    let api_token = env::var("MITTWALD_API_TOKEN").expect("TODO: get token once at startup");
 
     let client = Client::new();
 
@@ -21,19 +29,15 @@ async fn main() -> Result<(), Error> {
         }),
     };
 
-    //project_list_servers(&config, customer_id, limit, page, skip)
+    let projects = model::get_customers(&config)
+        .await
+        .expect("TODO: actix error");
 
-    //project_list_projects(&config, customer_id, server_id, None, None, None);
-
-    let projects = model::get_customers(&config).await?;
-
-    println!("{:?}", projects);
-
-    Ok(())
+    Ok(format!("{:?}", projects))
 }
 
 mod model {
-    use anyhow::Error;
+    use anyhow::Result;
     use futures::stream::FuturesUnordered;
     use futures::TryStreamExt;
     use rusttwald::apis::{
@@ -53,7 +57,7 @@ mod model {
     }
 
     impl Customer {
-        async fn from_id(config: &Configuration, customer_id: String) -> Result<Self, Error> {
+        async fn from_id(config: &Configuration, customer_id: String) -> Result<Self> {
             let projects =
                 project_list_projects(config, Some(&customer_id), None, None, None, None)
                     .await?
@@ -70,7 +74,7 @@ mod model {
         }
     }
 
-    pub async fn get_customers(config: &Configuration) -> Result<Vec<Customer>, Error> {
+    pub async fn get_customers(config: &Configuration) -> Result<Vec<Customer>> {
         FuturesUnordered::from_iter(
             customer_list_customers(config, None, None, None, None, None)
                 .await?

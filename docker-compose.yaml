@@ -1,0 +1,10 @@
+version: "3.5"
+services:
+  api:
+    image: lowkey
+    build:
+      context: .
+    ports:
+      - "6670:6670"
+    environment:
+      - MITTWALD_API_TOKEN=$MITTWALD_API_TOKEN
