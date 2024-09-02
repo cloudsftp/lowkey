@@ -14,5 +14,5 @@ tag_and_push() {
     docker push "ghcr.io/cloudsftp/$service:$local_version"
 }
 
-tag_and_push "lowkey" "$version"
+#tag_and_push "lowkey" "$version"
 tag_and_push "lowkey" "latest"
