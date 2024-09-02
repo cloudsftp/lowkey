@@ -1,10 +1,13 @@
 use actix_web::{web, App, HttpServer};
+use dotenv::dotenv;
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
 use std::env;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().expect("could not load variables from .env");
+
     HttpServer::new(|| App::new().route("/hey", web::get().to(hello_mittwald)))
         .bind(("0.0.0.0", 6670))?
         .run()

@@ -6,5 +6,5 @@ services:
       context: .
     ports:
       - "6670:6670"
-    environment:
-      - MITTWALD_API_TOKEN=$MITTWALD_API_TOKEN
+    volumes:
+      - .env:/.env
