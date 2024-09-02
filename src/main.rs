@@ -8,18 +8,28 @@ use std::env;
 async fn main() -> std::io::Result<()> {
     dotenv().expect("could not load variables from .env");
 
-    HttpServer::new(|| App::new().route("/hey", web::get().to(hello_mittwald)))
-        .bind(("0.0.0.0", 6670))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .app_data(web::Data::new(State {
+                config: build_config(),
+            }))
+            .route("/hey", web::get().to(hello_mittwald))
+    })
+    .bind(("0.0.0.0", 6670))?
+    .run()
+    .await
 }
 
-async fn hello_mittwald() -> Result<String, actix_web::Error> {
-    let api_token = env::var("MITTWALD_API_TOKEN").expect("TODO: get token once at startup");
+struct State {
+    config: Configuration,
+}
+
+fn build_config() -> Configuration {
+    let api_token = env::var("MITTWALD_API_TOKEN").expect("could not load the mittwald API token");
 
     let client = Client::new();
 
-    let config = Configuration {
+    Configuration {
         base_path: "https://api.mittwald.de".to_string(),
         user_agent: Some("rusttwald - Unofficial Rust API Client".to_string()),
         client,
@@ -30,9 +40,11 @@ async fn hello_mittwald() -> Result<String, actix_web::Error> {
             prefix: None,
             key: api_token.to_string(),
         }),
-    };
+    }
+}
 
-    let projects = model::get_customers(&config)
+async fn hello_mittwald(data: web::Data<State>) -> Result<String, actix_web::Error> {
+    let projects = model::get_customers(&data.config)
         .await
         .expect("TODO: actix error");
 
