@@ -1,0 +1,21 @@
+name: Build and Test
+
+on: push
+
+jobs:
+  build_and_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build
+
+      - name: Test
+        run: cargo test
+      
+      - name: Lint
+        run: cargo clippy -- -D warnings
