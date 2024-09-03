@@ -31,7 +31,7 @@ fn build_config() -> Configuration {
 
     Configuration {
         base_path: "https://api.mittwald.de".to_string(),
-        user_agent: Some("rusttwald - Unofficial Rust API Client".to_string()),
+        user_agent: Some("lowkey via rusttwald".to_string()),
         client,
         basic_auth: None,
         oauth_access_token: None,
@@ -62,13 +62,13 @@ mod model {
 
     #[derive(Debug, Clone)]
     pub struct Project {
-        pub id: String,
+        pub _id: String,
     }
 
     #[derive(Debug, Clone)]
     pub struct Customer {
-        pub id: String,
-        pub projects: Vec<Project>,
+        pub _id: String,
+        pub _projects: Vec<Project>,
     }
 
     impl Customer {
@@ -78,13 +78,13 @@ mod model {
                     .await?
                     .iter()
                     .map(|project_response| Project {
-                        id: project_response.id.to_string(),
+                        _id: project_response.id.to_string(),
                     })
                     .collect();
 
             Ok(Customer {
-                id: customer_id.to_string(),
-                projects,
+                _id: customer_id.to_string(),
+                _projects: projects,
             })
         }
     }
