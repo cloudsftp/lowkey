@@ -30,13 +30,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Docker images
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: cloudsftp/lowkey:latest
+      - name: Build and Push Docker Image
+        run: |
+          docker build . -t "ghcr.io/cloudsftp/lowkey:latest"
+          docker push "ghcr.io/cloudsftp/lowkey:latest"
 
   deploy:
     name: Deploy Backend
