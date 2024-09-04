@@ -42,12 +42,8 @@ jobs:
       - image
 
     steps:
-      - uses: actions/checkout@v4
-
-        # Deploy
-
-      - name: Deploy backend on kusomiso
-        uses: appleboy/ssh-action@v1
+      - name: Deploy Backend on Kusomiso
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.KUSOMISO_HOST }}
           username: ${{ secrets.KUSOMISO_USERNAME }}
