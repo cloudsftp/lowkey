@@ -125,14 +125,16 @@ mod persistence {
 
     #[async_trait]
     pub trait Repository: Debug {
-        async fn register_extension_instance(
+        async fn create_extension_instance(
             &self,
             instance_id: &str,
             context_id: &str,
         ) -> Result<()>;
+        async fn delete_extension_instance(&self, instance_id: &str) -> Result<()>;
     }
 
     pub mod nats {
+        use anyhow::Result;
         use async_nats::jetstream::kv::Store;
         use async_trait::async_trait;
 
@@ -143,11 +145,11 @@ mod persistence {
 
         #[async_trait]
         impl super::Repository for NatsRepository {
-            async fn register_extension_instance(
+            async fn create_extension_instance(
                 &self,
                 instance_id: &str,
                 context_id: &str,
-            ) -> anyhow::Result<()> {
+            ) -> Result<()> {
                 let instance = super::ExtensionInstance {
                     context_id: context_id.into(),
                 };
@@ -160,6 +162,12 @@ mod persistence {
                 self.extension_instances
                     .create(instance_id, encoded.into())
                     .await?;
+
+                Ok(())
+            }
+
+            async fn delete_extension_instance(&self, instance_id: &str) -> Result<()> {
+                self.extension_instances.delete(instance_id).await?;
 
                 Ok(())
             }
