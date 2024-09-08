@@ -1,31 +1,81 @@
 use actix_web::{web, App, HttpServer};
+use anyhow::Result;
+use async_nats::jetstream;
 use dotenv::dotenv;
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
 use std::env;
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
+    let state = bootstrap().await?;
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(State {
-                config: build_config(),
-            }))
+            .app_data(web::Data::new(state.clone()))
             .route("/hey", web::get().to(hello_mittwald))
     })
     .bind(("0.0.0.0", 6670))?
     .run()
-    .await
+    .await?;
+
+    Ok(())
 }
 
+#[derive(Debug, Clone)]
 struct State {
-    config: Configuration,
+    _jetstream: jetstream::Context,
+    mittwald_api_configuration: Configuration,
+}
+
+async fn bootstrap() -> Result<State> {
+    let jetstream = setup_nats().await?;
+
+    let mittwald_api_configuration = build_config();
+
+    Ok(State {
+        _jetstream: jetstream,
+        mittwald_api_configuration,
+    })
+}
+
+async fn setup_nats() -> Result<jetstream::Context> {
+    let nats_host = env::var("NATS_HOST").expect("could not get NATS_HOST from the environment");
+    let nats_client = async_nats::connect(nats_host).await?;
+    let jetstream = jetstream::new(nats_client);
+
+    let _ = get_or_create_key_value(&jetstream, "extension_instances").await;
+
+    Ok(jetstream)
+}
+
+async fn get_or_create_key_value(
+    jetstream: &jetstream::Context,
+    bucket: &str,
+) -> Result<jetstream::kv::Store> {
+    let store = jetstream.get_key_value(bucket).await;
+    match store {
+        Ok(store) => Ok(store),
+        Err(err) => {
+            if let jetstream::context::KeyValueErrorKind::GetBucket = err.kind() {
+                Ok(jetstream
+                    .create_key_value(jetstream::kv::Config {
+                        bucket: bucket.into(),
+                        history: 10,
+                        ..Default::default()
+                    })
+                    .await?)
+            } else {
+                Err(err.into())
+            }
+        }
+    }
 }
 
 fn build_config() -> Configuration {
-    let api_token = env::var("MITTWALD_API_TOKEN").expect("could not load the mittwald API token");
+    let api_token = env::var("MITTWALD_API_TOKEN")
+        .expect("could not get MITTWALD_API_TOKEN from the environment");
 
     let client = Client::new();
 
@@ -44,7 +94,7 @@ fn build_config() -> Configuration {
 }
 
 async fn hello_mittwald(data: web::Data<State>) -> Result<String, actix_web::Error> {
-    let projects = model::get_customers(&data.config)
+    let projects = model::get_customers(&data.mittwald_api_configuration)
         .await
         .expect("TODO: actix error");
 
