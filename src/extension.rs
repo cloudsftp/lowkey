@@ -1,10 +1,15 @@
 use actix_web::{post, web};
+use log::debug;
 use serde::Deserialize;
 
 use crate::WrappedState;
 
 pub fn build_service() -> actix_web::Scope {
-    web::scope("extension").service(register_extension_instance)
+    web::scope("extension")
+        .service(added)
+        .service(updated)
+        .service(removed)
+        .service(secret_rotated)
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,10 +19,12 @@ struct AddedToContextPath {
 }
 
 #[post("/added/{instance_id}/{context_id}")]
-async fn register_extension_instance(
+async fn added(
     data: web::Data<WrappedState>,
     path: web::Path<AddedToContextPath>,
 ) -> Result<String, actix_web::Error> {
+    debug!("Extension instance added: {:?}", path);
+
     data.repository
         .create_extension_instance(&path.instance_id, &path.context_id)
         .await
@@ -28,27 +35,42 @@ async fn register_extension_instance(
 
 #[derive(Debug, Deserialize)]
 struct UpdatedPath {
-    _instance_id: String,
+    instance_id: String,
 }
 
 #[post("/updated/{instance_id}")]
-async fn extension_instance_updated(
+async fn updated(
     _: web::Data<WrappedState>,
-    _: web::Path<UpdatedPath>,
+    path: web::Path<UpdatedPath>,
 ) -> Result<String, actix_web::Error> {
+    debug!("Extension instance updated: {:?}", path);
+
+    let _ = path.instance_id;
+
     Ok("Ok".to_string())
 }
 
 #[derive(Debug, Deserialize)]
 struct SecretRotatedPath {
-    _instance_id: String,
+    instance_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct SecretRotatedBody {
+    secret: String,
 }
 
 #[post("/secret-rotated/{instance_id}")]
 async fn secret_rotated(
     _: web::Data<WrappedState>,
-    _: web::Path<SecretRotatedPath>,
+    path: web::Path<SecretRotatedPath>,
+    body: web::Json<SecretRotatedBody>,
 ) -> Result<String, actix_web::Error> {
+    debug!("Extension instance secret rotated: {:?}, {:?}", path, body);
+
+    let _ = path.instance_id;
+    let _ = body.secret;
+
     Ok("Ok".to_string())
 }
 
@@ -58,10 +80,12 @@ struct RemovedPath {
 }
 
 #[post("/removed/{instance_id}")]
-async fn extension_instance_removed(
+async fn removed(
     data: web::Data<WrappedState>,
     path: web::Path<RemovedPath>,
 ) -> Result<String, actix_web::Error> {
+    debug!("Extension instance removed: {:?}", path);
+
     data.repository
         .delete_extension_instance(&path.instance_id)
         .await
