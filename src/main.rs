@@ -4,17 +4,21 @@ use async_nats::jetstream;
 use dotenv::dotenv;
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
-use std::env;
+use std::{env, sync::Arc};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
-    let state = bootstrap().await?;
+    let state = Arc::new(bootstrap().await?);
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
             .route("/hey", web::get().to(hello_mittwald))
+            .route(
+                "/register-extension-instance",
+                web::put().to(register_extension_instance),
+            )
     })
     .bind(("0.0.0.0", 6670))?
     .run()
@@ -23,31 +27,33 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct State {
-    _jetstream: jetstream::Context,
+    repository: Box<dyn persistence::Repository + Send + Sync>,
     mittwald_api_configuration: Configuration,
 }
 
 async fn bootstrap() -> Result<State> {
-    let jetstream = setup_nats().await?;
+    let repository = setup_nats().await?;
 
     let mittwald_api_configuration = build_config();
 
     Ok(State {
-        _jetstream: jetstream,
+        repository: Box::new(repository),
         mittwald_api_configuration,
     })
 }
 
-async fn setup_nats() -> Result<jetstream::Context> {
+async fn setup_nats() -> Result<persistence::nats::NatsRepository> {
     let nats_host = env::var("NATS_HOST").expect("could not get NATS_HOST from the environment");
     let nats_client = async_nats::connect(nats_host).await?;
     let jetstream = jetstream::new(nats_client);
 
-    let _ = get_or_create_key_value(&jetstream, "extension_instances").await;
+    let extension_instances = get_or_create_key_value(&jetstream, "extension_instances").await?;
 
-    Ok(jetstream)
+    Ok(persistence::nats::NatsRepository {
+        extension_instances,
+    })
 }
 
 async fn get_or_create_key_value(
@@ -94,11 +100,76 @@ fn build_config() -> Configuration {
 }
 
 async fn hello_mittwald(data: web::Data<State>) -> Result<String, actix_web::Error> {
-    let projects = model::get_customers(&data.mittwald_api_configuration)
+    let _projects = model::get_customers(&data.mittwald_api_configuration)
         .await
-        .expect("TODO: actix error");
+        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
 
-    Ok(format!("{:?}", projects))
+    Ok(format!("hi :)\n"))
+}
+
+async fn register_extension_instance(data: web::Data<State>) -> Result<String, actix_web::Error> {
+    data.repository
+        .register_extension_instance("bla", "blub")
+        .await
+        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+
+    Ok(format!("Ok"))
+}
+
+mod persistence {
+    use std::fmt::Debug;
+
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct ExtensionInstance {
+        context_id: String,
+    }
+
+    #[async_trait]
+    pub trait Repository: Debug {
+        async fn register_extension_instance(
+            &self,
+            instance_id: &str,
+            context_id: &str,
+        ) -> Result<()>;
+    }
+
+    pub mod nats {
+        use async_nats::jetstream::kv::Store;
+        use async_trait::async_trait;
+
+        #[derive(Debug, Clone)]
+        pub struct NatsRepository {
+            pub extension_instances: Store,
+        }
+
+        #[async_trait]
+        impl super::Repository for NatsRepository {
+            async fn register_extension_instance(
+                &self,
+                instance_id: &str,
+                context_id: &str,
+            ) -> anyhow::Result<()> {
+                let instance = super::ExtensionInstance {
+                    context_id: context_id.into(),
+                };
+
+                let instance = bson::ser::to_document(&instance)?;
+
+                let mut encoded: Vec<u8> = Vec::new();
+                instance.to_writer(&mut encoded)?;
+
+                self.extension_instances
+                    .create(instance_id, encoded.into())
+                    .await?;
+
+                Ok(())
+            }
+        }
+    }
 }
 
 mod model {
