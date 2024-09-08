@@ -1,4 +1,6 @@
-use actix_web::{web, App, HttpServer};
+mod extension;
+
+use actix_web::{get, web, App, HttpServer};
 use anyhow::Result;
 use async_nats::jetstream;
 use dotenv::dotenv;
@@ -6,19 +8,26 @@ use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
 use std::{env, sync::Arc};
 
+#[derive(Debug)]
+struct State {
+    repository: Box<dyn persistence::Repository + Send + Sync>,
+    mittwald_api_configuration: Configuration,
+}
+
+type WrappedState = Arc<State>;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
-    let state = Arc::new(bootstrap().await?);
+
+    env_logger::init();
+    let state = bootstrap().await?;
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .route("/hey", web::get().to(hello_mittwald))
-            .route(
-                "/register-extension-instance",
-                web::put().to(register_extension_instance),
-            )
+            .service(extension::build_service())
+            .service(hello_mittwald)
     })
     .bind(("0.0.0.0", 6670))?
     .run()
@@ -27,21 +36,15 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-struct State {
-    repository: Box<dyn persistence::Repository + Send + Sync>,
-    mittwald_api_configuration: Configuration,
-}
-
-async fn bootstrap() -> Result<State> {
+async fn bootstrap() -> Result<WrappedState> {
     let repository = setup_nats().await?;
 
     let mittwald_api_configuration = build_config();
 
-    Ok(State {
+    Ok(Arc::new(State {
         repository: Box::new(repository),
         mittwald_api_configuration,
-    })
+    }))
 }
 
 async fn setup_nats() -> Result<persistence::nats::NatsRepository> {
@@ -99,21 +102,13 @@ fn build_config() -> Configuration {
     }
 }
 
-async fn hello_mittwald(data: web::Data<State>) -> Result<String, actix_web::Error> {
+#[get("/hey")]
+async fn hello_mittwald(data: web::Data<WrappedState>) -> Result<String, actix_web::Error> {
     let _projects = model::get_customers(&data.mittwald_api_configuration)
         .await
-        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
-    Ok(format!("hi :)\n"))
-}
-
-async fn register_extension_instance(data: web::Data<State>) -> Result<String, actix_web::Error> {
-    data.repository
-        .register_extension_instance("bla", "blub")
-        .await
-        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
-
-    Ok(format!("Ok"))
+    Ok("hi :)\n".to_string())
 }
 
 mod persistence {

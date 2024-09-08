@@ -13,6 +13,7 @@ async-nats = "0.36.0"
 async-trait = "0.1.82"
 bson = "2.11.0"
 dotenv = "0.15.0"
+env_logger = "0.11.5"
 futures = "0.3.30"
 reqwest = { version = "0.12.7", features = ["json"] }
 rusttwald = "0.1.1"
