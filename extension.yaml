@@ -1,0 +1,40 @@
+id: 0c3f42aa-536b-4562-abaf-ccbd91f53bda
+contributorId: e77eb8f9-9b25-4e13-b0ab-92f6eaa8d3f7
+name: lowkey
+description: Time-tracking leicht gemacht.
+detailedDescriptions:
+  de:
+    markdown: |-
+      # lowkey
+      Time-tracking leicht gemacht.
+    plain: Time-tracking leicht gemacht.
+  en:
+    markdown: |-
+      # lowkey
+      Time-tracking made easy.
+    plain: Time-tracking made easy.
+extensionContext: customer
+requiredScopes:
+  - customer:read
+externalComponents:
+  backend:
+    extensionAddedToContext:
+      url: https://api.lowkey.energiesandsuch.com/extension/added/:extensionInstanceId/:contextId
+    extensionInstanceUpdated:
+      url: https://api.lowkey.energiesandsuch.com/extension/updated/:extensionInstanceId
+    extensionInstanceSecretRotated:
+      url: https://api.lowkey.energiesandsuch.com/extension/secret-rotated/:extensionInstanceId
+    extensionInstanceRemovedFromContext:
+      url: https://api.lowkey.energiesandsuch.com/extension/removed/:extensionInstanceId
+  frontends:
+    index:
+      url: https://lowkey.energiesandsuch.com
+support:
+  email: fabian.weik@protonmail.com
+tags:
+  - time-tracking
+  - productivity
+state:
+  hidden: true
+  disabled: false
+  blocked: false
