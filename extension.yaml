@@ -6,13 +6,19 @@ detailedDescriptions:
   de:
     markdown: |-
       # lowkey
+      ## Time-tracking leicht gemacht.
+    plain: |-
+      lowkey
+
       Time-tracking leicht gemacht.
-    plain: Time-tracking leicht gemacht.
   en:
     markdown: |-
       # lowkey
+      ## Time-tracking made easy.
+    plain: |-
+      lowkey
+
       Time-tracking made easy.
-    plain: Time-tracking made easy.
 extensionContext: customer
 requiredScopes:
   - customer:read
