@@ -11,11 +11,24 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Call Dagger Function
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "latest"
+          verb: call
+          # modify to use different function(s) as needed
+          # module: github.com/shykes/daggerverse/hello@v0.1.2
+          args: check --souce=.
+          # assumes the Dagger Cloud token is in
+          # a repository secret named DAGGER_CLOUD_TOKEN
+          # set via the GitHub UI/CLI
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
       - name: Build
         run: cargo build
 
       - name: Test
         run: cargo test
-      
+
       - name: Lint
         run: cargo clippy -- -D warnings
