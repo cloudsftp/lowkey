@@ -5,26 +5,35 @@ use testcontainers_modules::{
 };
 use tokio::sync::OnceCell;
 
-struct ContainerInfo {
-    host: String,
-    port: String,
+#[derive(Debug, Clone)]
+pub struct Containers {
+    pub nats: ContainerInfo,
+    pub lowkey: ContainerInfo,
+    pub local_dev_server: ContainerInfo,
 }
 
-static ONCE: OnceCell<Result<()>> = OnceCell::const_new();
+#[derive(Debug, Clone)]
+pub struct ContainerInfo {
+    pub host: String,
+    pub port: String,
+}
 
-pub async fn setup_containers() -> &'static Result<()> {
-    ONCE.get_or_init(setup_constainers_once).await
+static ONCE: OnceCell<Containers> = OnceCell::const_new();
+
+pub async fn setup_containers() -> Containers {
+    ONCE.get_or_init(setup_constainers_once).await.clone()
 }
 
 const LOWKEY_TESTIMAGE_NAME: &str = "lowkey";
 const LOWKEY_TESTIMAGE_TAG: &str = "test";
 
-async fn setup_constainers_once() -> Result<()> {
-    images::compile_image("Dockerfile", LOWKEY_TESTIMAGE_NAME, LOWKEY_TESTIMAGE_TAG)?;
+async fn setup_constainers_once() -> Containers {
+    images::compile_image("Dockerfile", LOWKEY_TESTIMAGE_NAME, LOWKEY_TESTIMAGE_TAG)
+        .expect("could not compile lowkey test image");
 
-    let nats_info = start_nats().await;
-    let lowkey_info = start_lowkey(nats_info, LOWKEY_TESTIMAGE_NAME, LOWKEY_TESTIMAGE_TAG).await;
-    let local_dev_info = start_local_dev(lowkey_info).await;
+    let nats = start_nats().await;
+    let lowkey = start_lowkey(&nats, LOWKEY_TESTIMAGE_NAME, LOWKEY_TESTIMAGE_TAG).await;
+    let local_dev_server = start_local_dev(&lowkey).await;
 
     let local_dev_container = GenericImage::new("mittwald/marketplace-local-dev-server", "1.3.0")
         .pull_image()
@@ -34,7 +43,11 @@ async fn setup_constainers_once() -> Result<()> {
         .await
         .expect("could not start local dev server");
 
-    Ok(())
+    Containers {
+        nats,
+        lowkey,
+        local_dev_server,
+    }
 }
 
 async fn start_nats() -> ContainerInfo {
@@ -58,7 +71,7 @@ async fn start_nats() -> ContainerInfo {
 }
 
 async fn start_lowkey(
-    nats_info: ContainerInfo,
+    nats_info: &ContainerInfo,
     image_name: &str,
     image_tag: &str,
 ) -> ContainerInfo {
@@ -84,7 +97,7 @@ async fn start_lowkey(
     }
 }
 
-async fn start_local_dev(lowkey_info: ContainerInfo) -> ContainerInfo {
+async fn start_local_dev(lowkey_info: &ContainerInfo) -> ContainerInfo {
     let port = 8080;
 
     let container = GenericImage::new("mittwald/marketplace-local-dev-server", "1.3.0")
