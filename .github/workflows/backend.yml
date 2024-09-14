@@ -24,8 +24,11 @@ jobs:
         with:
           version: "latest"
           verb: call
-          args: publish-image --source=. --actor=${{ github.actor }} --token=env:GITHUB_TOKEN
+          args: publish-image --source=. --actor=$GITHUB_ACTOR --token=env:GITHUB_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   deploy:
     name: Deploy Backend
