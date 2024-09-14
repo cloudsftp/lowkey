@@ -1,6 +1,12 @@
 {
   "name": "lowkey",
   "sdk": "go",
+  "dependencies": [
+    {
+      "name": "registry-config",
+      "source": "github.com/sagikazarmark/daggerverse/registry-config@00bf116fab9dfd19c9f0a9d3dd7fd6352167e6fa"
+    }
+  ],
   "source": "pipelines",
   "engineVersion": "v0.13.0"
 }

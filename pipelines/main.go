@@ -6,7 +6,10 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
-type Lowkey struct{}
+type Lowkey struct {
+	// +private
+	RegistryConfig *dagger.RegistryConfig
+}
 
 func (l *Lowkey) Build(source *dagger.Directory) (*dagger.File, error) {
 	source = filterDirectory(source)
@@ -31,6 +34,18 @@ func (l *Lowkey) BuildImage(
 		DockerBuild()
 
 	return container
+}
+
+func (l *Lowkey) PublishImage(
+	ctx context.Context,
+	source *dagger.Directory,
+	actor string,
+	token *dagger.Secret,
+) (string, error) {
+	return l.
+		BuildImage(ctx, source).
+		WithRegistryAuth("ghcr.io", actor, token).
+		Publish(ctx, "ghcr.io/cloudsftp/lowkey:latest")
 }
 
 func filterDirectory(input *dagger.Directory) *dagger.Directory {

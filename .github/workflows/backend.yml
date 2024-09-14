@@ -2,8 +2,6 @@ name: Build, publish and deploy backend
 
 on:
   push:
-    tags:
-      - "v*"
     branches:
       - latest
 
@@ -20,21 +18,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
 
-      - name: Build
+      - name: Build and publish
         uses: dagger/dagger-for-github@v6
         with:
           version: "latest"
           verb: call
-          args: build-image --source=.
+          args: publish-image --source=. --actor=${{ github.actor }} --token=env:GITHUB_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Build and Push Docker Image
-        run: |
-          docker build . -t "ghcr.io/cloudsftp/lowkey:latest"
-          docker push "ghcr.io/cloudsftp/lowkey:latest"
 
   deploy:
     name: Deploy Backend
