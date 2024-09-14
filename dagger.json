@@ -1,6 +1,6 @@
 {
   "name": "lowkey",
   "sdk": "go",
-  "source": "dagger",
+  "source": "pipelines",
   "engineVersion": "v0.13.0"
 }
