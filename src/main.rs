@@ -23,6 +23,8 @@ async fn main() -> Result<()> {
     env_logger::init();
     let state = bootstrap().await?;
 
+    println!("starting");
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))

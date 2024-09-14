@@ -8,27 +8,25 @@ import (
 
 type Lowkey struct{}
 
-func (l *Lowkey) Check(ctx context.Context, source *dagger.Directory) error {
+func (l *Lowkey) Build(ctx context.Context, source *dagger.Directory) error {
 	rust := dag.Container().From("rust:latest")
 	rust = rust.WithDirectory("/work", source).WithWorkdir("/work")
 
-	//path := "."
-	//rust = rust.WithExec([]string{"cargo", "check"})
-	rust = rust.WithExec([]string{"ls", "-l"})
-
-	_, err := rust.AsService().Hostname(ctx)
-	if err != nil {
-		return err
-	}
+	rust = rust.WithExec([]string{"cargo", "build", "--release"})
 
 	/*
-		output := rust.Directory(path)
-
-		_, err = output.Export(ctx, path)
+		_, err := rust.AsService().Hostname(ctx)
 		if err != nil {
 			return err
 		}
 	*/
+
+	output := rust.File("target/release/lowkey")
+
+	_, err := output.Export(ctx, "result.bin")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
