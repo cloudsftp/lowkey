@@ -12,14 +12,14 @@ jobs:
       - name: Setup Golang with cache
         uses: magnetikonline/action-golang-cache@v5
         with:
-          go-version-file: dagger/go.mod
+          go-version-file: pipelines/go.mod
 
       - name: Check
         uses: dagger/dagger-for-github@v6
         with:
           version: "latest"
           verb: call
-          args: check --source=.
+          args: build --source=.
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Rust Cache
