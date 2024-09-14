@@ -40,6 +40,8 @@ jobs:
       - image
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy Backend on Kusomiso
         uses: dagger/dagger-for-github@v6
         with:
