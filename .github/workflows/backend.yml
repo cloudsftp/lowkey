@@ -39,6 +39,7 @@ jobs:
     needs:
       - image
 
+    steps:
       - name: Deploy Backend on Kusomiso
         uses: dagger/dagger-for-github@v6
         with:
