@@ -60,3 +60,33 @@ func cachedRustBuilder(source *dagger.Directory) *dagger.Container {
 		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-cache")).
 		WithEnvVariable("CARGO_HOME", "/cache/cargo")
 }
+
+func (l *Lowkey) Deploy(
+	ctx context.Context,
+	host *dagger.Secret,
+	username *dagger.Secret,
+	key *dagger.Secret,
+) error {
+	username_plain, err := username.Plaintext(ctx)
+	if err != nil {
+		return err
+	}
+
+	host_plain, err := host.Plaintext(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = dag.SSH().
+		Config(username_plain + "@" + host_plain).
+		WithIdentityFile(key).
+		Command("./deploy.sh").
+		AsService().
+		Start(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
