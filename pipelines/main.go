@@ -6,19 +6,40 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
+const (
+	RustVersion = "1.81"
+)
+
 type Lowkey struct {
 	// +private
 	RegistryConfig *dagger.RegistryConfig
 }
 
-func (l *Lowkey) Build(source *dagger.Directory) (*dagger.File, error) {
+func (l *Lowkey) Build(source *dagger.Directory) *dagger.File {
+	return cachedRustBuilder(source).
+		WithExec([]string{"cargo", "build", "--release"}).
+		WithExec([]string{"cp", "target/release/lowkey", "/lowkey"}).
+		File("/lowkey")
+}
+
+func (l *Lowkey) Test(
+	ctx context.Context,
+	source *dagger.Directory,
+) (string, error) {
+	return cachedRustBuilder(source).
+		WithExec([]string{"cargo", "test"}).
+		Stdout(ctx)
+}
+
+func (l *Lowkey) Lint(
+	ctx context.Context,
+	source *dagger.Directory,
+) (string, error) {
 	source = filterDirectory(source)
 
-	builder := cachedRustBuilder(source).
-		WithExec([]string{"cargo", "build", "--release"})
-
-	output := builder.File("target/release/lowkey")
-	return output, nil
+	return cachedRustBuilder(source).
+		WithExec([]string{"cargo", "clippy", "--", "-D", "warnings"}).
+		Stdout(ctx)
 }
 
 func (l *Lowkey) BuildImage(
@@ -27,13 +48,11 @@ func (l *Lowkey) BuildImage(
 ) *dagger.Container {
 	source = filterDirectory(source)
 
-	container := dag.Container().
+	return dag.Container().
 		WithDirectory("/src", source).
 		WithWorkdir("/src").
 		Directory("/src").
 		DockerBuild()
-
-	return container
 }
 
 func (l *Lowkey) PublishImage(
@@ -53,12 +72,20 @@ func filterDirectory(input *dagger.Directory) *dagger.Directory {
 }
 
 func cachedRustBuilder(source *dagger.Directory) *dagger.Container {
+	source = source.WithoutDirectory("target")
+
 	return dag.Container().
-		From("rust:latest").
+		From("rust:"+RustVersion).
+		WithExec([]string{"rustup", "component", "add", "clippy"}).
+
+		// Caches
+		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-packages")).
+		WithEnvVariable("CARGO_HOME", "/cache/cargo").
+		WithMountedCache("target", dag.CacheVolume("rust-target")).
+
+		// Source Code
 		WithDirectory("/src", source).
-		WithWorkdir("/src").
-		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-cache")).
-		WithEnvVariable("CARGO_HOME", "/cache/cargo")
+		WithWorkdir("/src")
 }
 
 func (l *Lowkey) Deploy(

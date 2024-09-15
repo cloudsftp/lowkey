@@ -14,7 +14,7 @@ jobs:
         with:
           go-version-file: pipelines/go.mod
 
-      - name: Check
+      - name: Build
         uses: dagger/dagger-for-github@v6
         with:
           version: "latest"
@@ -22,14 +22,18 @@ jobs:
           args: build --source=.
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build
-        run: cargo build
-
-      # - name: Test
-      #   run: cargo test
+      - name: Test
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "latest"
+          verb: call
+          args: test --source=.
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Lint
-        run: cargo clippy -- -D warnings
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "latest"
+          verb: call
+          args: lint --source=.
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
