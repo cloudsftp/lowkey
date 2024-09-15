@@ -20,6 +20,8 @@ type WrappedState = Arc<State>;
 async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
 
+    println!("starting server");
+
     env_logger::init();
     let state = bootstrap().await?;
 
