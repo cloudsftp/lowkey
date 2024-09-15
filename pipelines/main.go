@@ -27,21 +27,17 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		result, err := l.Lint(ctx, source)
+		_, err := l.Lint(ctx, source)
 		if err != nil {
 			errors <- err
 			return
 		}
 
-		fmt.Println(result)
-
-		result, err = l.Test(ctx, source)
+		_, err = l.Test(ctx, source)
 		if err != nil {
 			errors <- err
 			return
 		}
-
-		fmt.Println(result)
 
 		wg.Done()
 	}()
@@ -52,13 +48,11 @@ func (l *Lowkey) BuildAndTestAll(
 
 		l.BuildImage(ctx, source)
 
-		result, err := l.TestIntegration(ctx, source)
+		_, err := l.TestIntegration(ctx, source)
 		if err != nil {
 			errors <- err
 			return
 		}
-
-		fmt.Println(result)
 
 		wg.Done()
 	}()
@@ -79,6 +73,7 @@ loop:
 			return err
 		}
 	}
+	// Ende
 
 	return nil
 }
