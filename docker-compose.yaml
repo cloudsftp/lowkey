@@ -9,6 +9,8 @@ services:
 
   api:
     image: lowkey
+    depends_on:
+      - nats
     build:
       context: .
     ports:

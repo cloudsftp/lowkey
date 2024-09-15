@@ -9,7 +9,8 @@ import (
 const (
 	RustVersion = "1.81"
 
-	APIPort = 6670
+	APIPort           = 6670
+	APIExecutablePath = "/bin/server"
 )
 
 type Lowkey struct {
@@ -42,7 +43,7 @@ func (l *Lowkey) Lint(
 		Stdout(ctx)
 }
 
-func (l *Lowkey) BuildImage(
+func (l *Lowkey) BuildBaseImage(
 	ctx context.Context,
 	source *dagger.Directory,
 ) *dagger.Container {
@@ -71,8 +72,16 @@ func (l *Lowkey) BuildImage(
 
 		// Application
 		WithExposedPort(APIPort).
-		WithFile(executablePath, executable).
-		WithEntrypoint([]string{executablePath})
+		WithFile(executablePath, executable)
+}
+
+func (l *Lowkey) BuildImage(
+	ctx context.Context,
+	source *dagger.Directory,
+) *dagger.Container {
+	return l.
+		BuildBaseImage(ctx, source).
+		WithEntrypoint([]string{APIExecutablePath})
 }
 
 func (l *Lowkey) PublishImage(
@@ -94,14 +103,14 @@ func cachedRustBuilder(source *dagger.Directory) *dagger.Container {
 		From("rust:"+RustVersion).
 		WithExec([]string{"rustup", "component", "add", "clippy"}).
 
+		// Source Code
+		WithDirectory("/src", source).
+		WithWorkdir("/src").
+
 		// Caches
 		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-packages")).
 		WithEnvVariable("CARGO_HOME", "/cache/cargo").
-		WithMountedCache("target", dag.CacheVolume("rust-target")).
-
-		// Source Code
-		WithDirectory("/src", source).
-		WithWorkdir("/src")
+		WithMountedCache("target", dag.CacheVolume("rust-target"))
 }
 
 func (l *Lowkey) Deploy(
@@ -110,34 +119,42 @@ func (l *Lowkey) Deploy(
 	username *dagger.Secret,
 	key *dagger.Secret,
 ) (string, error) {
-	container, err := l.DeploymentContainer(
-		ctx, host, username, key,
-	)
+	username_plain, err := username.Plaintext(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	return container.Stdout(ctx)
-}
-
-func (l *Lowkey) DeploymentContainer(
-	ctx context.Context,
-	host *dagger.Secret,
-	username *dagger.Secret,
-	key *dagger.Secret,
-) (*dagger.Container, error) {
-	username_plain, err := username.Plaintext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	host_plain, err := host.Plaintext(ctx)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return NewSSH(
 		username_plain+"@"+host_plain,
 		key,
-	).Command("./deploy.sh"), nil
+	).
+		Command("./deploy.sh").
+		Stdout(ctx)
+}
+
+// Local development
+
+func (l *Lowkey) BuildTestService(
+	ctx context.Context,
+	source *dagger.Directory,
+) *dagger.Service {
+	nats_service := dag.Container().
+		From("nats:latest").
+		WithExposedPort(4222).
+		WithDefaultArgs([]string{
+			"--jetstream", "--name", "main",
+		}).
+		AsService()
+
+	return l.
+		BuildBaseImage(ctx, source).
+		WithFile(".env", source.File(".env")).
+		WithServiceBinding("nats", nats_service).
+		WithExec([]string{"/bin/server"}).
+		AsService()
 }

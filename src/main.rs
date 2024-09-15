@@ -1,7 +1,7 @@
 mod extension;
 
 use actix_web::{get, web, App, HttpServer};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_nats::jetstream;
 use dotenv::dotenv;
 use reqwest::Client;
@@ -37,7 +37,9 @@ async fn main() -> Result<()> {
 }
 
 async fn bootstrap() -> Result<WrappedState> {
-    let repository = setup_nats().await?;
+    let repository = setup_nats()
+        .await
+        .map_err(|err| anyhow!("Could not setup nats repository: {}", err))?;
 
     let mittwald_api_configuration = build_config();
 
@@ -48,7 +50,7 @@ async fn bootstrap() -> Result<WrappedState> {
 }
 
 async fn setup_nats() -> Result<persistence::nats::NatsRepository> {
-    let nats_host = env::var("NATS_HOST").expect("could not get NATS_HOST from the environment");
+    let nats_host = env::var("NATS_HOST")?;
     let nats_client = async_nats::connect(nats_host).await?;
     let jetstream = jetstream::new(nats_client);
 
