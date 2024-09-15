@@ -8,6 +8,8 @@ import (
 
 const (
 	RustVersion = "1.81"
+
+	APIPort = 6670
 )
 
 type Lowkey struct {
@@ -35,8 +37,6 @@ func (l *Lowkey) Lint(
 	ctx context.Context,
 	source *dagger.Directory,
 ) (string, error) {
-	source = filterDirectory(source)
-
 	return cachedRustBuilder(source).
 		WithExec([]string{"cargo", "clippy", "--", "-D", "warnings"}).
 		Stdout(ctx)
@@ -46,13 +46,33 @@ func (l *Lowkey) BuildImage(
 	ctx context.Context,
 	source *dagger.Directory,
 ) *dagger.Container {
-	source = filterDirectory(source)
+	executable := l.Build(source)
+	executablePath := "/bin/server"
 
 	return dag.Container().
-		WithDirectory("/src", source).
-		WithWorkdir("/src").
-		Directory("/src").
-		DockerBuild()
+		From("debian:bookworm-slim").
+
+		// Install Dependencies
+		WithExec([]string{"apt-get", "update"}).
+		WithExec([]string{"apt-get", "install", "-y", "libssl3", "ca-certificates"}).
+		WithExec([]string{"rm", "-rf", "/var/lib/apt/lists/*"}).
+
+		// User
+		WithExec([]string{
+			"adduser", "appuser",
+			"--disabled-password",
+			"--gecos", "",
+			"--home", "/nonexistent",
+			"--shell", "/sbin/nologin",
+			"--no-create-home",
+			"--uid", "10001",
+		}).
+		WithUser("appuser").
+
+		// Application
+		WithExposedPort(APIPort).
+		WithFile(executablePath, executable).
+		WithEntrypoint([]string{executablePath})
 }
 
 func (l *Lowkey) PublishImage(
@@ -65,10 +85,6 @@ func (l *Lowkey) PublishImage(
 		BuildImage(ctx, source).
 		WithRegistryAuth("ghcr.io", actor, token).
 		Publish(ctx, "ghcr.io/cloudsftp/lowkey:latest")
-}
-
-func filterDirectory(input *dagger.Directory) *dagger.Directory {
-	return input.WithoutDirectory("target")
 }
 
 func cachedRustBuilder(source *dagger.Directory) *dagger.Container {
