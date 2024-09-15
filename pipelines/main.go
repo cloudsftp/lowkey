@@ -109,27 +109,35 @@ func (l *Lowkey) Deploy(
 	host *dagger.Secret,
 	username *dagger.Secret,
 	key *dagger.Secret,
-) error {
+) (string, error) {
+	container, err := l.DeploymentContainer(
+		ctx, host, username, key,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return container.Stdout(ctx)
+}
+
+func (l *Lowkey) DeploymentContainer(
+	ctx context.Context,
+	host *dagger.Secret,
+	username *dagger.Secret,
+	key *dagger.Secret,
+) (*dagger.Container, error) {
 	username_plain, err := username.Plaintext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	host_plain, err := host.Plaintext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = dag.SSH().
-		Config(username_plain + "@" + host_plain).
-		WithIdentityFile(key).
-		Command("./deploy.sh").
-		AsService().
-		Start(ctx)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return NewSSH(
+		username_plain+"@"+host_plain,
+		key,
+	).Command("./deploy.sh"), nil
 }

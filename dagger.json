@@ -3,10 +3,6 @@
   "sdk": "go",
   "dependencies": [
     {
-      "name": "ssh",
-      "source": "github.com/seungyeop-lee/daggerverse/ssh@63f0f2d385768aa435474a9eec552750500899f2"
-    },
-    {
       "name": "registry-config",
       "source": "github.com/sagikazarmark/daggerverse/registry-config@00bf116fab9dfd19c9f0a9d3dd7fd6352167e6fa"
     }
