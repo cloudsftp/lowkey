@@ -17,7 +17,7 @@ const (
 	GoVersion   = "1.23"
 )
 
-func (l *Lowkey) Pipeline(
+func (l *Lowkey) BuildAndTestAll(
 	ctx context.Context,
 	source *dagger.Directory,
 ) error {
@@ -63,6 +63,7 @@ func (l *Lowkey) Pipeline(
 		wg.Done()
 	}()
 
+	// TODO: das muss doch besser gehen :(
 	done := make(chan any)
 	go func() {
 		wg.Wait()
@@ -77,6 +78,30 @@ loop:
 		case err := <-errors:
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (l *Lowkey) Pipeline(
+	ctx context.Context,
+	source *dagger.Directory,
+	actor string,
+	token *dagger.Secret,
+	host *dagger.Secret,
+	username *dagger.Secret,
+	key *dagger.Secret,
+) error {
+	err := l.BuildAndTestAll(ctx, source)
+
+	_, err = l.PublishImage(ctx, source, actor, token)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.Deploy(ctx, host, username, key)
+	if err != nil {
+		return err
 	}
 
 	return nil
