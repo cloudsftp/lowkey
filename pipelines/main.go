@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"dagger/lowkey/internal/dagger"
-	"fmt"
 	"sync"
+
+	"dagger/lowkey/internal/dagger"
 )
 
 type Lowkey struct {
