@@ -20,6 +20,8 @@ const (
 func (l *Lowkey) BuildAndTestAll(
 	ctx context.Context,
 	source *dagger.Directory,
+	// +optional
+	devServerExecutable *dagger.File,
 ) error {
 	var wg sync.WaitGroup
 
@@ -48,7 +50,7 @@ func (l *Lowkey) BuildAndTestAll(
 
 		l.BuildImage(ctx, source)
 
-		_, err := l.TestIntegration(ctx, source)
+		_, err := l.TestIntegration(ctx, source, devServerExecutable)
 		if err != nil {
 			errors <- err
 			return
