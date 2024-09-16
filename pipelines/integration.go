@@ -6,6 +6,21 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
+func (l *Lowkey) TestIntegration(
+	ctx context.Context,
+	source *dagger.Directory,
+) (string, error) {
+	lowkeyService := l.BuildTestService(ctx, source)
+
+	localDevService := buildLocalDevService(ctx, source, lowkeyService)
+	localDevService = localDevService
+
+	return cachedGoBuilder(source.Directory("integration")).
+		WithServiceBinding("lowkey-api", lowkeyService).
+		WithExec([]string{"go", "test"}).
+		Stdout(ctx)
+}
+
 func (l *Lowkey) BuildTestService(
 	ctx context.Context,
 	source *dagger.Directory,
@@ -37,19 +52,4 @@ func buildLocalDevService(
 		WithFile(".env", source.File(".env")).
 		WithServiceBinding("lowkey-api", lowkeyService).
 		AsService()
-}
-
-func (l *Lowkey) TestIntegration(
-	ctx context.Context,
-	source *dagger.Directory,
-) (string, error) {
-	lowkeyService := l.BuildTestService(ctx, source)
-
-	localDevService := buildLocalDevService(ctx, source, lowkeyService)
-	localDevService = localDevService
-
-	return cachedGoBuilder(source.Directory("integration")).
-		WithServiceBinding("lowkey-api", lowkeyService).
-		WithExec([]string{"go", "test"}).
-		Stdout(ctx)
 }

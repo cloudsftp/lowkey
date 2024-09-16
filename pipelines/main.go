@@ -67,10 +67,10 @@ func (l *Lowkey) BuildAndTestAll(
 loop:
 	for {
 		select {
-		case <-done:
-			break loop
 		case err := <-errors:
 			return err
+		case <-done:
+			break loop
 		}
 	}
 	// Ende
