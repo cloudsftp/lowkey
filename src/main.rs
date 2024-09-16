@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
         App::new()
             .app_data(web::Data::new(state.clone()))
             .service(extension::build_service())
-            .service(hello_mittwald)
+            .service(hey)
     })
     .bind(("0.0.0.0", 6670))?
     .run()
@@ -107,7 +107,12 @@ fn build_config() -> Configuration {
 }
 
 #[get("/hey")]
-async fn hello_mittwald(data: web::Data<WrappedState>) -> Result<String, actix_web::Error> {
+async fn hey() -> Result<String, actix_web::Error> {
+    Ok("hi :)\n".to_string())
+}
+
+#[get("/hey-mittwald")]
+async fn hey_mittwald(data: web::Data<WrappedState>) -> Result<String, actix_web::Error> {
     let _projects = model::get_customers(&data.mittwald_api_configuration)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;

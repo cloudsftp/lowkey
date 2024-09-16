@@ -78,7 +78,7 @@ loop:
 	return nil
 }
 
-func (l *Lowkey) Pipeline(
+func (l *Lowkey) PublishAndDeploy(
 	ctx context.Context,
 	source *dagger.Directory,
 	actor string,
@@ -87,9 +87,7 @@ func (l *Lowkey) Pipeline(
 	username *dagger.Secret,
 	key *dagger.Secret,
 ) error {
-	err := l.BuildAndTestAll(ctx, source)
-
-	_, err = l.PublishImage(ctx, source, actor, token)
+	_, err := l.PublishImage(ctx, source, actor, token)
 	if err != nil {
 		return err
 	}

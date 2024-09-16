@@ -26,12 +26,20 @@ jobs:
         run: |
           cp .env.example .env
 
-      - name: Everything
+      - name: Build and Test All
         uses: dagger/dagger-for-github@v6
         with:
           version: "latest"
           verb: call
-          args: pipeline --source=. --actor=$GITHUB_ACTOR --token=env:GITHUB_TOKEN --host=env:HOST --username=env:USERNAME --key=env:KEY
+          args: build-and-test-all --source=.
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Deploy
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "latest"
+          verb: call
+          args: publish-and-deploy --source=. --actor=$GITHUB_ACTOR --token=env:GITHUB_TOKEN --host=env:HOST --username=env:USERNAME --key=env:KEY
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}

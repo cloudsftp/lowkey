@@ -5,6 +5,27 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
+func (l *Lowkey) PublishImage(
+	ctx context.Context,
+	source *dagger.Directory,
+	actor string,
+	token *dagger.Secret,
+) (string, error) {
+	return l.
+		BuildImage(ctx, source).
+		WithRegistryAuth("ghcr.io", actor, token).
+		Publish(ctx, "ghcr.io/cloudsftp/lowkey:latest")
+}
+
+func (l *Lowkey) BuildImage(
+	ctx context.Context,
+	source *dagger.Directory,
+) *dagger.Container {
+	return l.
+		BuildBaseImage(ctx, source).
+		WithEntrypoint([]string{"/bin/server"})
+}
+
 func (l *Lowkey) BuildBaseImage(
 	ctx context.Context,
 	source *dagger.Directory,
@@ -34,25 +55,4 @@ func (l *Lowkey) BuildBaseImage(
 		// Application
 		WithExposedPort(6670).
 		WithFile("/bin/server", executable)
-}
-
-func (l *Lowkey) BuildImage(
-	ctx context.Context,
-	source *dagger.Directory,
-) *dagger.Container {
-	return l.
-		BuildBaseImage(ctx, source).
-		WithEntrypoint([]string{"/bin/server"})
-}
-
-func (l *Lowkey) PublishImage(
-	ctx context.Context,
-	source *dagger.Directory,
-	actor string,
-	token *dagger.Secret,
-) (string, error) {
-	return l.
-		BuildImage(ctx, source).
-		WithRegistryAuth("ghcr.io", actor, token).
-		Publish(ctx, "ghcr.io/cloudsftp/lowkey:latest")
 }
