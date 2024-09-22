@@ -32,3 +32,26 @@ func (s *WebhooksTestSuite) TestRemovingExtensionFromContext() {
 		WithExtensionInstanceID(extensionInstanceID),
 	)
 }
+
+func (s *WebhooksTestSuite) TestRemovingExtensionFromContextTwice() {
+	extensionInstanceID := uuid.NewString()
+
+	s.assertWebhookCall(
+		"extensionAddedToContext",
+		WithExtensionInstanceID(extensionInstanceID),
+	)
+
+	s.assertWebhookCall(
+		"instanceRemovedFromContext",
+		WithExtensionInstanceID(extensionInstanceID),
+	)
+
+	s.assertWebhookCall(
+		"instanceRemovedFromContext",
+		WithExtensionInstanceID(extensionInstanceID),
+	)
+}
+
+func (s *WebhooksTestSuite) TestRemovingUnknownExtensionFromContext() {
+	s.assertWebhookCall("instanceRemovedFromContext")
+}

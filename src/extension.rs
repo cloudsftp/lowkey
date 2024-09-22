@@ -1,5 +1,5 @@
 use actix_web::{post, web};
-use log::debug;
+use log::info;
 use serde::Deserialize;
 
 use crate::WrappedState;
@@ -23,7 +23,7 @@ async fn added(
     data: web::Data<WrappedState>,
     path: web::Path<AddedToContextPath>,
 ) -> Result<String, actix_web::Error> {
-    debug!("Extension instance added: {:?}", path);
+    info!("Extension instance added: {:?}", path);
 
     data.repository
         .create_extension_instance(&path.instance_id, &path.context_id)
@@ -43,7 +43,7 @@ async fn updated(
     _: web::Data<WrappedState>,
     path: web::Path<UpdatedPath>,
 ) -> Result<String, actix_web::Error> {
-    debug!("Extension instance updated: {:?}", path);
+    info!("Extension instance updated: {:?}", path);
 
     let _ = path.instance_id;
 
@@ -66,7 +66,7 @@ async fn secret_rotated(
     path: web::Path<SecretRotatedPath>,
     body: web::Json<SecretRotatedBody>,
 ) -> Result<String, actix_web::Error> {
-    debug!("Extension instance secret rotated: {:?}, {:?}", path, body);
+    info!("Extension instance secret rotated: {:?}, {:?}", path, body);
 
     let _ = path.instance_id;
     let _ = body.secret;
@@ -84,7 +84,7 @@ async fn removed(
     data: web::Data<WrappedState>,
     path: web::Path<RemovedPath>,
 ) -> Result<String, actix_web::Error> {
-    debug!("Extension instance removed: {:?}", path);
+    info!("Extension instance removed: {:?}", path);
 
     data.repository
         .delete_extension_instance(&path.instance_id)

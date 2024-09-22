@@ -18,7 +18,7 @@ func (l *Lowkey) TestIntegration(
 	return cachedGoBuilder(source.Directory("integration")).
 		WithServiceBinding("lowkey-api", lowkeyService).
 		WithServiceBinding("local-dev", localDevService).
-		WithExec([]string{"go", "test", "./..."}).
+		WithExec([]string{"go", "test", "-count=1", "./..."}).
 		Stdout(ctx)
 }
 
