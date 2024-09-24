@@ -4,6 +4,7 @@ use actix_web::{get, web, App, HttpServer};
 use anyhow::{anyhow, Result};
 use async_nats::jetstream;
 use dotenv::dotenv;
+use log::info;
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
 use std::{env, sync::Arc};
@@ -20,7 +21,7 @@ type WrappedState = Arc<State>;
 async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
 
-    println!("starting server");
+    info!("starting server");
 
     env_logger::init();
     let state = bootstrap().await?;

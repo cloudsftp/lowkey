@@ -74,7 +74,7 @@ func defaultWebhookCallConfiguration() WebhookCallConfiguration {
 		WebhookCallRequest: WebhookCallRequest{
 			ExtensionID:               pointer.Of(ExtensionID),
 			ContributorID:             pointer.Of(ContributorID),
-			Context:                   pointer.Of("project"),
+			Context:                   pointer.Of("customer"),
 			ExtensionInstanceDisabled: false,
 		},
 		ExtensionResponse: ExtensionResponse{
