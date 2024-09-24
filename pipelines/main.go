@@ -21,6 +21,8 @@ func (l *Lowkey) BuildAndTestAll(
 	ctx context.Context,
 	source *dagger.Directory,
 	// +optional
+	rusthookSource *dagger.Directory,
+	// +optional
 	devServerExecutable *dagger.File,
 ) error {
 	var wg sync.WaitGroup
@@ -29,13 +31,13 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		_, err := l.Lint(ctx, source)
+		_, err := l.Lint(ctx, source, rusthookSource)
 		if err != nil {
 			errors <- err
 			return
 		}
 
-		_, err = l.Test(ctx, source)
+		_, err = l.Test(ctx, source, rusthookSource)
 		if err != nil {
 			errors <- err
 			return
@@ -46,11 +48,11 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		l.Build(source)
+		l.Build(source, rusthookSource)
 
-		l.BuildImage(ctx, source)
+		l.BuildImage(ctx, source, rusthookSource)
 
-		_, err := l.TestIntegration(ctx, source, devServerExecutable)
+		_, err := l.TestIntegration(ctx, source, rusthookSource, devServerExecutable)
 		if err != nil {
 			errors <- err
 			return
@@ -83,13 +85,15 @@ loop:
 func (l *Lowkey) PublishAndDeploy(
 	ctx context.Context,
 	source *dagger.Directory,
+	// +optional
+	rusthookSource *dagger.Directory,
 	actor string,
 	token *dagger.Secret,
 	host *dagger.Secret,
 	username *dagger.Secret,
 	key *dagger.Secret,
 ) error {
-	_, err := l.PublishImage(ctx, source, actor, token)
+	_, err := l.PublishImage(ctx, source, rusthookSource, actor, token)
 	if err != nil {
 		return err
 	}

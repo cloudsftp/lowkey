@@ -8,11 +8,13 @@ import (
 func (l *Lowkey) PublishImage(
 	ctx context.Context,
 	source *dagger.Directory,
+	// +optional
+	rusthookSource *dagger.Directory,
 	actor string,
 	token *dagger.Secret,
 ) (string, error) {
 	return l.
-		BuildImage(ctx, source).
+		BuildImage(ctx, source, rusthookSource).
 		WithRegistryAuth("ghcr.io", actor, token).
 		Publish(ctx, "ghcr.io/cloudsftp/lowkey:latest")
 }
@@ -20,17 +22,21 @@ func (l *Lowkey) PublishImage(
 func (l *Lowkey) BuildImage(
 	ctx context.Context,
 	source *dagger.Directory,
+	// +optional
+	rusthookSource *dagger.Directory,
 ) *dagger.Container {
 	return l.
-		BuildBaseImage(ctx, source).
+		BuildBaseImage(ctx, source, rusthookSource).
 		WithEntrypoint([]string{"/bin/server"})
 }
 
 func (l *Lowkey) BuildBaseImage(
 	ctx context.Context,
 	source *dagger.Directory,
+	// +optional
+	rusthookSource *dagger.Directory,
 ) *dagger.Container {
-	executable := l.Build(source)
+	executable := l.Build(source, rusthookSource)
 
 	return dag.Container().
 		From("debian:bookworm-slim").
