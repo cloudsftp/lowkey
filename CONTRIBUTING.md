@@ -1,5 +1,9 @@
 ## Local Development
 
+Requirements:
+
+- libopenssl-3-devel (OpenSUSE Tumbleweed)
+
 This repo is powered by [dagger](https://dagger.io/).
 Install it [here](https://docs.dagger.io/quickstart/cli).
 

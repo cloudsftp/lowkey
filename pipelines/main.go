@@ -21,7 +21,7 @@ func (l *Lowkey) BuildAndTestAll(
 	ctx context.Context,
 	source *dagger.Directory,
 	// +optional
-	rusthookSource *dagger.Directory,
+	mittlifeCyclesSource *dagger.Directory,
 	// +optional
 	devServerExecutable *dagger.File,
 ) error {
@@ -31,13 +31,13 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		_, err := l.Lint(ctx, source, rusthookSource)
+		_, err := l.Lint(ctx, source, mittlifeCyclesSource)
 		if err != nil {
 			errors <- err
 			return
 		}
 
-		_, err = l.Test(ctx, source, rusthookSource)
+		_, err = l.Test(ctx, source, mittlifeCyclesSource)
 		if err != nil {
 			errors <- err
 			return
@@ -48,11 +48,11 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		l.Build(source, rusthookSource)
+		l.Build(source, mittlifeCyclesSource)
 
-		l.BuildImage(ctx, source, rusthookSource)
+		l.BuildImage(ctx, source, mittlifeCyclesSource)
 
-		_, err := l.TestIntegration(ctx, source, rusthookSource, devServerExecutable)
+		_, err := l.TestIntegration(ctx, source, mittlifeCyclesSource, devServerExecutable)
 		if err != nil {
 			errors <- err
 			return
@@ -86,14 +86,14 @@ func (l *Lowkey) PublishAndDeploy(
 	ctx context.Context,
 	source *dagger.Directory,
 	// +optional
-	rusthookSource *dagger.Directory,
+	mittlifeCyclesSource *dagger.Directory,
 	actor string,
 	token *dagger.Secret,
 	host *dagger.Secret,
 	username *dagger.Secret,
 	key *dagger.Secret,
 ) error {
-	_, err := l.PublishImage(ctx, source, rusthookSource, actor, token)
+	_, err := l.PublishImage(ctx, source, mittlifeCyclesSource, actor, token)
 	if err != nil {
 		return err
 	}

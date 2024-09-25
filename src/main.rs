@@ -5,6 +5,7 @@ use anyhow::{anyhow, Result};
 use async_nats::jetstream;
 use dotenv::dotenv;
 use log::info;
+use mittlife_cycles::verification::Ed25519Verifier;
 use reqwest::Client;
 use rusttwald::apis::configuration::{ApiKey, Configuration};
 use std::{env, sync::Arc};
@@ -13,6 +14,8 @@ use std::{env, sync::Arc};
 struct State {
     repository: Box<dyn persistence::Repository + Send + Sync>,
     mittwald_api_configuration: Configuration,
+    #[allow(dead_code)]
+    verifier: Ed25519Verifier,
 }
 
 type WrappedState = Arc<State>;
@@ -49,6 +52,7 @@ async fn bootstrap() -> Result<WrappedState> {
     Ok(Arc::new(State {
         repository: Box::new(repository),
         mittwald_api_configuration,
+        verifier: Ed25519Verifier {},
     }))
 }
 
