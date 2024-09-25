@@ -1,4 +1,4 @@
-use actix_web::{post, web};
+use actix_web::{error::ErrorBadRequest, post, web, HttpRequest};
 use log::info;
 use serde::Deserialize;
 
@@ -20,9 +20,17 @@ struct AddedToContextPath {
 
 #[post("/added/{instance_id}/{context_id}")]
 async fn added(
+    body: web::Bytes,
+    request: HttpRequest,
     state: web::Data<WrappedState>,
     path: web::Path<AddedToContextPath>,
 ) -> Result<String, actix_web::Error> {
+    state
+        .verifier
+        .verify_request(body, request.headers())
+        .await
+        .map_err(|err| ErrorBadRequest(err))?;
+
     info!("Extension instance added: {:?}", path);
 
     state
@@ -96,4 +104,28 @@ async fn removed(
     Ok("Ok".to_string())
 }
 
-mod verifier {}
+pub mod verifier {
+    use actix_web::{http::header::HeaderMap, web};
+    use anyhow::Result;
+    use log::info;
+    use mittlife_cycles::verification::MappedHeaders;
+
+    #[derive(Debug)]
+    pub struct WebhookVerifier {}
+
+    impl WebhookVerifier {
+        pub fn new() -> Self {
+            WebhookVerifier {}
+        }
+
+        pub async fn verify_request(&self, body: web::Bytes, headers: &HeaderMap) -> Result<()> {
+            info!("verifying request signature");
+
+            let headers: MappedHeaders = headers.try_into()?;
+
+            info!("headers: {:?}", headers);
+
+            Ok(())
+        }
+    }
+}
