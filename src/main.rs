@@ -1,16 +1,15 @@
-mod extension;
+mod webhooks;
 
 use actix_web::{get, web, App, HttpServer};
 use anyhow::{anyhow, Result};
 use async_nats::jetstream;
 use dotenv::dotenv;
 use log::info;
-use mittlife_cycles::verification::Ed25519Verifier;
 use reqwest::Client;
-use rusttwald::apis::configuration::{ApiKey, Configuration};
+use rusttwald::apis::configuration::Configuration;
 use std::{env, sync::Arc};
 
-use crate::extension::verifier::WebhookVerifier;
+use crate::webhooks::verifier::WebhookVerifier;
 
 #[derive(Debug)]
 struct State {
@@ -33,7 +32,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .service(extension::build_service())
+            .service(webhooks::build_service())
             .service(hey)
     })
     .bind(("0.0.0.0", 6670))?
@@ -93,22 +92,14 @@ async fn get_or_create_key_value(
 }
 
 fn build_config() -> Configuration {
-    let api_token = env::var("MITTWALD_API_TOKEN")
-        .expect("could not get MITTWALD_API_TOKEN from the environment");
-
-    let client = Client::new();
-
     Configuration {
         base_path: "https://api.mittwald.de".to_string(),
         user_agent: Some("lowkey via rusttwald".to_string()),
-        client,
+        client: Client::new(),
         basic_auth: None,
         oauth_access_token: None,
         bearer_access_token: None,
-        api_key: Some(ApiKey {
-            prefix: None,
-            key: api_token.to_string(),
-        }),
+        api_key: None,
     }
 }
 
