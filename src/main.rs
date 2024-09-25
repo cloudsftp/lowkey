@@ -12,10 +12,9 @@ use std::{env, sync::Arc};
 
 use crate::webhooks::verifier::WebhookVerifier;
 
-#[derive(Debug)]
 struct State {
-    repository: Box<dyn persistence::Repository + Send + Sync>,
-    mittwald_api_configuration: Configuration,
+    repository: Box<dyn persistence::Repository + Send + Sync>, // TODO: rename repository
+    api_configuration: Configuration, // TODO: wrap in some kind of repository
     verifier: WebhookVerifier,
 }
 
@@ -48,12 +47,12 @@ async fn bootstrap() -> Result<WrappedState> {
         .await
         .map_err(|err| anyhow!("Could not setup nats repository: {}", err))?;
 
-    let mittwald_api_configuration = build_config();
+    let api_configuration = build_config();
 
     Ok(Arc::new(State {
         repository: Box::new(repository),
-        mittwald_api_configuration: mittwald_api_configuration.clone(),
-        verifier: WebhookVerifier::new(mittwald_api_configuration),
+        api_configuration: api_configuration.clone(),
+        verifier: WebhookVerifier::new(api_configuration),
     }))
 }
 
@@ -111,7 +110,7 @@ async fn hey() -> Result<String, actix_web::Error> {
 
 #[get("/hey-mittwald")]
 async fn hey_mittwald(data: web::Data<WrappedState>) -> Result<String, actix_web::Error> {
-    let _projects = model::get_customers(&data.mittwald_api_configuration)
+    let _projects = model::get_customers(&data.api_configuration)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 

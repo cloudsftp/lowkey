@@ -1,23 +1,60 @@
 use actix_web::{http::header::HeaderMap, web};
 use anyhow::Result;
 use log::info;
-use mittlife_cycles::verification::MappedHeaders;
+use mittlife_cycles::verification::{
+    fetcher::{KeyFetcher, PublicKeyResponse},
+    headers::SignatureHeaders,
+    ED25519PublicKey, Ed25519Verifier, KeyCollection, MappedHeaders, MemoryCache, Verifier,
+};
+use rusttwald::apis::configuration::Configuration;
 
-#[derive(Debug)]
-pub struct WebhookVerifier {}
+pub struct WebhookVerifier {
+    key_collection:
+        KeyCollection<MemoryCache<ED25519PublicKey>, ED25519PublicKey, RusttwaldFetcher>, // TODO: NATS cache -> no mut needed
+    verifier: Ed25519Verifier,
+}
 
 impl WebhookVerifier {
-    pub fn new() -> Self {
-        WebhookVerifier {}
+    pub fn new(api_config: Configuration) -> Self {
+        WebhookVerifier {
+            key_collection: KeyCollection::new(
+                MemoryCache::default(),
+                RusttwaldFetcher { api_config },
+            ),
+            verifier: Ed25519Verifier::default(),
+        }
     }
 
-    pub async fn verify_request(&self, body: web::Bytes, headers: &HeaderMap) -> Result<()> {
+    pub async fn verify_request(&mut self, body: web::Bytes, headers: &HeaderMap) -> Result<()> {
         info!("verifying request signature");
 
         let headers: MappedHeaders = headers.try_into()?;
+        let serial = headers.get_serial();
+        let public_key = self.key_collection.get_or_fetch_key(serial).await?;
 
-        info!("headers: {:?}", headers);
+        self.verifier
+            .verify_signature(&headers, &body.to_vec(), &public_key)
+    }
+}
 
-        Ok(())
+struct RusttwaldFetcher {
+    api_config: Configuration,
+}
+
+#[async_trait::async_trait]
+impl KeyFetcher for RusttwaldFetcher {
+    fn with_base_url(self, _: &str) -> Self {
+        todo!("this has no business here")
+    }
+
+    async fn fetch(&self, serial: &str) -> Result<PublicKeyResponse> {
+        let public_key_response =
+            rusttwald::apis::marketplace_api::extension_get_public_key(&self.api_config, serial)
+                .await?;
+
+        Ok(PublicKeyResponse {
+            key_base64: String::from_utf8(public_key_response.key)?,
+            serial: public_key_response.serial.to_string(),
+        })
     }
 }
