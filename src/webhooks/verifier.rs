@@ -43,10 +43,6 @@ struct RusttwaldFetcher {
 
 #[async_trait::async_trait]
 impl KeyFetcher for RusttwaldFetcher {
-    fn with_base_url(self, _: &str) -> Self {
-        todo!("this has no business here")
-    }
-
     async fn fetch(&self, serial: &str) -> Result<PublicKeyResponse> {
         let public_key_response =
             rusttwald::apis::marketplace_api::extension_get_public_key(&self.api_config, serial)

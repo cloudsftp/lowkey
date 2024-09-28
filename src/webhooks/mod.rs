@@ -29,6 +29,8 @@ async fn added(
 ) -> Result<String, actix_web::Error> {
     state
         .verifier
+        .lock()
+        .unwrap()
         .verify_request(body, request.headers())
         .await
         .map_err(|err| ErrorBadRequest(err))?;

@@ -39,6 +39,22 @@ dagger call test --source=.
 
 ### Integration Tests
 
+Run these commands:
+
+``` sh
+dagger call integration-lowkey-service --source=. --mittlife-cycles-source=../mittlife_cycles --local-dev-service=tcp://localhost:8080
+```
+
+``` sh
+dagger call integration-local-dev-service --source=. --lowkey-service=tcp://localhost:6670 up --ports 8080:8080
+```
+
+``` sh
+dagger call integration-drive-tests --source=integration --lowkey-service=tcp://localhost:6670 --local-dev-service=tcp://localhost:8080
+```
+
+Broken:
+
 ``` sh
 dagger call integration-test --source=.
 ```

@@ -5,6 +5,7 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
+// Build builds the lowkey service and returns the executable
 func (l *Lowkey) Build(
 	source *dagger.Directory,
 	// +optional
@@ -16,6 +17,7 @@ func (l *Lowkey) Build(
 		File("/lowkey")
 }
 
+// Test runs unit tests on the lowkey service
 func (l *Lowkey) Test(
 	ctx context.Context,
 	source *dagger.Directory,
@@ -51,7 +53,7 @@ func cachedRustBuilder(
 		// Source Code
 		WithDirectory("/src", source).
 		WithWorkdir("/src").
-		WithDirectory("/rusthook", mittlifeCyclesSource).
+		WithDirectory("/mittlife_cycles", mittlifeCyclesSource).
 
 		// Caches
 		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-packages")).

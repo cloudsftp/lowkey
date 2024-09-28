@@ -21,7 +21,7 @@ rusttwald = "0.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
 testcontainers-modules = { version = "0.10.0", features = ["nats"] }
 tokio = { version = "1.39.3", features = ["macros", "rt-multi-thread"] }
-mittlife_cycles = { path = "../rusthook" }
+mittlife_cycles = { path = "../mittlife_cycles", features = ["actixheader"] }
 
 [build-dependencies]
 anyhow = "1.0.86"
