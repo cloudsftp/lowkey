@@ -8,10 +8,10 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 actix-web = "4.9.0"
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 async-nats = "0.36.0"
-async-trait = "0.1.82"
-bson = "2.11.0"
+async-trait = "0.1.83"
+bson = "2.13.0"
 dotenv = "0.15.0"
 env_logger = "0.11.5"
 futures = "0.3.30"
@@ -20,7 +20,7 @@ reqwest = { version = "0.12.7", features = ["json"] }
 rusttwald = "0.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
 testcontainers-modules = { version = "0.10.0", features = ["nats"] }
-tokio = { version = "1.39.3", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
 [build-dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
