@@ -64,21 +64,16 @@ func (l *Lowkey) BuildAndTestAll(
 		wg.Done()
 	}()
 
-	// TODO: das muss doch besser gehen :(
 	done := make(chan any)
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
 
-loop:
-	for {
-		select {
-		case err := <-errors:
-			return err
-		case <-done:
-			break loop
-		}
+	select {
+	case err := <-errors:
+		return err
+	case <-done:
 	}
 	// Ende
 
