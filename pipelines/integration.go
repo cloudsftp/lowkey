@@ -38,10 +38,10 @@ func (l *Lowkey) IntegrationLowkeyService(
 	natsService := l.BuildNatsService(ctx)
 
 	return l.
-		BuildBaseImage(ctx, source, mittlifeCyclesSource).
+		buildBaseImage(ctx, source, mittlifeCyclesSource).
 		WithFile(".env", getEnvFile(source)).
 		WithServiceBinding("nats", natsService).
-		WithExec([]string{"/bin/server"}).
+		WithExec([]string{"/server"}).
 		AsService()
 }
 

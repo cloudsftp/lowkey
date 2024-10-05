@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+
 	"dagger/lowkey/internal/dagger"
 )
 
@@ -47,7 +49,13 @@ func cachedRustBuilder(
 	source = source.WithoutDirectory("target")
 
 	return dag.Container().
-		From("rust:"+RustVersion).
+		From(fmt.Sprintf("rust:%s-alpine%s", RustVersion, AlpineVersion)).
+		WithExec([]string{"apk", "update"}).
+		WithExec([]string{
+			"apk", "add", "--no-cache",
+			"pkgconfig", "musl-dev",
+			"openssl-dev", "openssl-libs-static",
+		}).
 		WithExec([]string{"rustup", "component", "add", "clippy"}).
 
 		// Source Code

@@ -15,6 +15,8 @@ type Lowkey struct {
 const (
 	RustVersion = "1.81"
 	GoVersion   = "1.23"
+
+	AlpineVersion = "3.20"
 )
 
 // BuildAndTestAll checks, builds, lints, and tests the lowkey service completely
