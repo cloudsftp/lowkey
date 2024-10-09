@@ -77,7 +77,6 @@ func (l *Lowkey) BuildAndTestAll(
 		return err
 	case <-done:
 	}
-	// Ende
 
 	return nil
 }
