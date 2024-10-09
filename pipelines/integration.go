@@ -13,11 +13,9 @@ func (l *Lowkey) TestIntegration(
 	ctx context.Context,
 	source *dagger.Directory,
 	// +optional
-	mittlifeCyclesSource *dagger.Directory,
-	// +optional
 	devServerExecutable *dagger.File,
 ) (string, error) {
-	lowkeyService := l.BuildLowkeyService(ctx, source, mittlifeCyclesSource)
+	lowkeyService := l.BuildLowkeyService(ctx, source)
 	localDevService := l.BuildLocalDevService(ctx, source, lowkeyService, devServerExecutable)
 
 	return cachedGoBuilder(source.Directory("integration")).
@@ -31,14 +29,12 @@ func (l *Lowkey) TestIntegration(
 func (l *Lowkey) IntegrationLowkeyService(
 	ctx context.Context,
 	source *dagger.Directory,
-	// +optional
-	mittlifeCyclesSource *dagger.Directory,
 	localDevService *dagger.Service,
 ) *dagger.Service {
 	natsService := l.BuildNatsService(ctx)
 
 	return l.
-		buildBaseImage(ctx, source, mittlifeCyclesSource).
+		buildBaseImage(ctx, source).
 		WithFile(".env", getEnvFile(source)).
 		WithServiceBinding("nats", natsService).
 		WithExec([]string{"/server"}).

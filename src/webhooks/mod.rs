@@ -20,6 +20,7 @@ struct AddedToContextPath {
     context_id: String,
 }
 
+#[allow(clippy::await_holding_lock)]
 #[post("/added/{instance_id}/{context_id}")]
 async fn added(
     body: web::Bytes,
@@ -33,7 +34,7 @@ async fn added(
         .unwrap()
         .verify_request(body, request.headers())
         .await
-        .map_err(|err| ErrorBadRequest(err))?;
+        .map_err(ErrorBadRequest)?;
 
     info!("Extension instance added: {:?}", path);
 

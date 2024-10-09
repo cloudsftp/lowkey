@@ -10,10 +10,8 @@ import (
 // Build builds the lowkey service and returns the executable
 func (l *Lowkey) Build(
 	source *dagger.Directory,
-	// +optional
-	mittlifeCyclesSource *dagger.Directory,
 ) *dagger.File {
-	return cachedRustBuilder(source, mittlifeCyclesSource).
+	return cachedRustBuilder(source).
 		WithExec([]string{"cargo", "build", "--release"}).
 		WithExec([]string{"cp", "target/release/lowkey", "/lowkey"}).
 		File("/lowkey")
@@ -23,10 +21,8 @@ func (l *Lowkey) Build(
 func (l *Lowkey) Test(
 	ctx context.Context,
 	source *dagger.Directory,
-	// +optional
-	mittlifeCyclesSource *dagger.Directory,
 ) (string, error) {
-	return cachedRustBuilder(source, mittlifeCyclesSource).
+	return cachedRustBuilder(source).
 		WithExec([]string{"cargo", "test"}).
 		Stdout(ctx)
 }
@@ -34,17 +30,14 @@ func (l *Lowkey) Test(
 func (l *Lowkey) Lint(
 	ctx context.Context,
 	source *dagger.Directory,
-	// +optional
-	mittlifeCyclesSource *dagger.Directory,
 ) (string, error) {
-	return cachedRustBuilder(source, mittlifeCyclesSource).
+	return cachedRustBuilder(source).
 		WithExec([]string{"cargo", "clippy", "--", "-D", "warnings"}).
 		Stdout(ctx)
 }
 
 func cachedRustBuilder(
 	source *dagger.Directory,
-	mittlifeCyclesSource *dagger.Directory,
 ) *dagger.Container {
 	source = source.WithoutDirectory("target")
 
@@ -61,7 +54,6 @@ func cachedRustBuilder(
 		// Source Code
 		WithDirectory("/src", source).
 		WithWorkdir("/src").
-		WithDirectory("/mittlife_cycles", mittlifeCyclesSource).
 
 		// Caches
 		WithMountedCache("/cache/cargo", dag.CacheVolume("rust-packages")).

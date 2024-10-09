@@ -34,13 +34,13 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		_, err := l.Lint(ctx, source, mittlifeCyclesSource)
+		_, err := l.Lint(ctx, source)
 		if err != nil {
 			errors <- err
 			return
 		}
 
-		_, err = l.Test(ctx, source, mittlifeCyclesSource)
+		_, err = l.Test(ctx, source)
 		if err != nil {
 			errors <- err
 			return
@@ -51,9 +51,9 @@ func (l *Lowkey) BuildAndTestAll(
 
 	wg.Add(1)
 	go func() {
-		l.Build(source, mittlifeCyclesSource)
+		l.Build(source)
 
-		l.BuildImage(ctx, source, mittlifeCyclesSource)
+		l.BuildImage(ctx, source)
 
 		/*
 			_, err := l.TestIntegration(ctx, source, mittlifeCyclesSource, devServerExecutable)
@@ -85,15 +85,13 @@ func (l *Lowkey) BuildAndTestAll(
 func (l *Lowkey) PublishAndDeploy(
 	ctx context.Context,
 	source *dagger.Directory,
-	// +optional
-	mittlifeCyclesSource *dagger.Directory,
 	actor string,
 	token *dagger.Secret,
 	host *dagger.Secret,
 	username *dagger.Secret,
 	key *dagger.Secret,
 ) error {
-	_, err := l.PublishImage(ctx, source, mittlifeCyclesSource, actor, token)
+	_, err := l.PublishImage(ctx, source, actor, token)
 	if err != nil {
 		return err
 	}

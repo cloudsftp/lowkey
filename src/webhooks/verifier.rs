@@ -21,7 +21,7 @@ impl WebhookVerifier {
                 MemoryCache::default(),
                 RusttwaldFetcher { api_config },
             ),
-            verifier: Ed25519Verifier::default(),
+            verifier: Ed25519Verifier {},
         }
     }
 
