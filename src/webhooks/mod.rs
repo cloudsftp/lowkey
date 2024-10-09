@@ -1,4 +1,6 @@
-use actix_web::{post, web};
+pub mod verifier;
+
+use actix_web::{error::ErrorBadRequest, post, web, HttpRequest};
 use log::info;
 use serde::Deserialize;
 
@@ -18,14 +20,26 @@ struct AddedToContextPath {
     context_id: String,
 }
 
+#[allow(clippy::await_holding_lock)]
 #[post("/added/{instance_id}/{context_id}")]
 async fn added(
-    data: web::Data<WrappedState>,
+    body: web::Bytes,
+    request: HttpRequest,
+    state: web::Data<WrappedState>,
     path: web::Path<AddedToContextPath>,
 ) -> Result<String, actix_web::Error> {
+    state
+        .verifier
+        .lock() // TODO: lock not needed when using nats
+        .unwrap()
+        .verify_request(body, request.headers())
+        .await
+        .map_err(ErrorBadRequest)?;
+
     info!("Extension instance added: {:?}", path);
 
-    data.repository
+    state
+        .repository
         .create_extension_instance(&path.instance_id, &path.context_id)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -81,12 +95,13 @@ struct RemovedPath {
 
 #[post("/removed/{instance_id}")]
 async fn removed(
-    data: web::Data<WrappedState>,
+    state: web::Data<WrappedState>,
     path: web::Path<RemovedPath>,
 ) -> Result<String, actix_web::Error> {
     info!("Extension instance removed: {:?}", path);
 
-    data.repository
+    state
+        .repository
         .delete_extension_instance(&path.instance_id)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"dagger/lowkey/internal/dagger"
 )
 
@@ -22,37 +23,18 @@ func (l *Lowkey) BuildImage(
 	source *dagger.Directory,
 ) *dagger.Container {
 	return l.
-		BuildBaseImage(ctx, source).
-		WithEntrypoint([]string{"/bin/server"})
+		buildBaseImage(ctx, source).
+		WithEntrypoint([]string{"/server"})
 }
 
-func (l *Lowkey) BuildBaseImage(
+func (l *Lowkey) buildBaseImage(
 	ctx context.Context,
 	source *dagger.Directory,
 ) *dagger.Container {
 	executable := l.Build(source)
 
 	return dag.Container().
-		From("debian:bookworm-slim").
-
-		// Install Dependencies
-		WithExec([]string{"apt-get", "update"}).
-		WithExec([]string{"apt-get", "install", "-y", "libssl3", "ca-certificates"}).
-		WithExec([]string{"rm", "-rf", "/var/lib/apt/lists/*"}).
-
-		// User
-		WithExec([]string{
-			"adduser", "appuser",
-			"--disabled-password",
-			"--gecos", "",
-			"--home", "/nonexistent",
-			"--shell", "/sbin/nologin",
-			"--no-create-home",
-			"--uid", "10001",
-		}).
-		WithUser("appuser").
-
-		// Application
+		From("alpine:"+AlpineVersion).
 		WithExposedPort(6670).
-		WithFile("/bin/server", executable)
+		WithFile("/server", executable)
 }

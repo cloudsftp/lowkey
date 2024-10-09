@@ -1,4 +1,5 @@
-mod extension;
+mod persistence;
+mod webhooks;
 
 use actix_web::{get, web, App, HttpServer};
 use anyhow::{anyhow, Result};
@@ -6,13 +7,18 @@ use async_nats::jetstream;
 use dotenv::dotenv;
 use log::info;
 use reqwest::Client;
-use rusttwald::apis::configuration::{ApiKey, Configuration};
-use std::{env, sync::Arc};
+use rusttwald::apis::configuration::Configuration;
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 
-#[derive(Debug)]
+use crate::webhooks::verifier::WebhookVerifier;
+
 struct State {
-    repository: Box<dyn persistence::Repository + Send + Sync>,
-    mittwald_api_configuration: Configuration,
+    repository: Box<dyn persistence::Repository + Send + Sync>, // TODO: rename repository
+    api_configuration: Configuration, // TODO: wrap in some kind of repository
+    verifier: Mutex<WebhookVerifier>, // TODO: remove mutex by using nats for key store
 }
 
 type WrappedState = Arc<State>;
@@ -29,7 +35,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .service(extension::build_service())
+            .service(webhooks::build_service())
             .service(hey)
     })
     .bind(("0.0.0.0", 6670))?
@@ -44,11 +50,12 @@ async fn bootstrap() -> Result<WrappedState> {
         .await
         .map_err(|err| anyhow!("Could not setup nats repository: {}", err))?;
 
-    let mittwald_api_configuration = build_config();
+    let api_configuration = build_config();
 
     Ok(Arc::new(State {
         repository: Box::new(repository),
-        mittwald_api_configuration,
+        api_configuration: api_configuration.clone(),
+        verifier: Mutex::new(WebhookVerifier::new(api_configuration)),
     }))
 }
 
@@ -88,22 +95,14 @@ async fn get_or_create_key_value(
 }
 
 fn build_config() -> Configuration {
-    let api_token = env::var("MITTWALD_API_TOKEN")
-        .expect("could not get MITTWALD_API_TOKEN from the environment");
-
-    let client = Client::new();
-
     Configuration {
         base_path: "https://api.mittwald.de".to_string(),
         user_agent: Some("lowkey via rusttwald".to_string()),
-        client,
+        client: Client::new(),
         basic_auth: None,
         oauth_access_token: None,
         bearer_access_token: None,
-        api_key: Some(ApiKey {
-            prefix: None,
-            key: api_token.to_string(),
-        }),
+        api_key: None,
     }
 }
 
@@ -114,75 +113,11 @@ async fn hey() -> Result<String, actix_web::Error> {
 
 #[get("/hey-mittwald")]
 async fn hey_mittwald(data: web::Data<WrappedState>) -> Result<String, actix_web::Error> {
-    let _projects = model::get_customers(&data.mittwald_api_configuration)
+    let _projects = model::get_customers(&data.api_configuration)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     Ok("hi :)\n".to_string())
-}
-
-mod persistence {
-    use std::fmt::Debug;
-
-    use anyhow::Result;
-    use async_trait::async_trait;
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct ExtensionInstance {
-        context_id: String,
-    }
-
-    #[async_trait]
-    pub trait Repository: Debug {
-        async fn create_extension_instance(
-            &self,
-            instance_id: &str,
-            context_id: &str,
-        ) -> Result<()>;
-        async fn delete_extension_instance(&self, instance_id: &str) -> Result<()>;
-    }
-
-    pub mod nats {
-        use anyhow::Result;
-        use async_nats::jetstream::kv::Store;
-        use async_trait::async_trait;
-
-        #[derive(Debug, Clone)]
-        pub struct NatsRepository {
-            pub extension_instances: Store,
-        }
-
-        #[async_trait]
-        impl super::Repository for NatsRepository {
-            async fn create_extension_instance(
-                &self,
-                instance_id: &str,
-                context_id: &str,
-            ) -> Result<()> {
-                let instance = super::ExtensionInstance {
-                    context_id: context_id.into(),
-                };
-
-                let instance = bson::ser::to_document(&instance)?;
-
-                let mut encoded: Vec<u8> = Vec::new();
-                instance.to_writer(&mut encoded)?;
-
-                self.extension_instances
-                    .create(instance_id, encoded.into())
-                    .await?;
-
-                Ok(())
-            }
-
-            async fn delete_extension_instance(&self, instance_id: &str) -> Result<()> {
-                self.extension_instances.delete(instance_id).await?;
-
-                Ok(())
-            }
-        }
-    }
 }
 
 mod model {
