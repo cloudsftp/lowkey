@@ -2,8 +2,8 @@ mod persistence;
 mod webhooks;
 
 use actix_web::{get, web, App, HttpServer};
-use anyhow::{anyhow, Result};
-use async_nats::jetstream;
+use anyhow::Result;
+use async_nats::jetstream::{self, Context};
 use dotenv::dotenv;
 use log::info;
 use reqwest::Client;
@@ -18,7 +18,7 @@ use crate::webhooks::verifier::WebhookVerifier;
 struct State {
     repository: Box<dyn persistence::Repository + Send + Sync>, // TODO: rename repository
     api_configuration: Configuration, // TODO: wrap in some kind of repository
-    verifier: Mutex<WebhookVerifier>, // TODO: remove mutex by using nats for key store
+    verifier: Mutex<WebhookVerifier>, // TODO: remove mutex after using immutable webhook verifier
 }
 
 type WrappedState = Arc<State>;
@@ -46,29 +46,30 @@ async fn main() -> Result<()> {
 }
 
 async fn bootstrap() -> Result<WrappedState> {
-    let repository = setup_nats()
-        .await
-        .map_err(|err| anyhow!("Could not setup nats repository: {}", err))?;
+    let jetstream = setup_nats().await?;
+
+    let extension_instances = get_or_create_key_value(&jetstream, "extension_instances").await?;
+    let keys = get_or_create_key_value(&jetstream, "public_signing_keys_mittwald").await?;
+
+    let repository = persistence::nats::NatsRepository {
+        extension_instances,
+    };
 
     let api_configuration = build_config();
 
     Ok(Arc::new(State {
         repository: Box::new(repository),
         api_configuration: api_configuration.clone(),
-        verifier: Mutex::new(WebhookVerifier::new(api_configuration)),
+        verifier: Mutex::new(WebhookVerifier::new(api_configuration, keys)),
     }))
 }
 
-async fn setup_nats() -> Result<persistence::nats::NatsRepository> {
+async fn setup_nats() -> Result<Context> {
     let nats_host = env::var("NATS_HOST")?;
     let nats_client = async_nats::connect(nats_host).await?;
     let jetstream = jetstream::new(nats_client);
 
-    let extension_instances = get_or_create_key_value(&jetstream, "extension_instances").await?;
-
-    Ok(persistence::nats::NatsRepository {
-        extension_instances,
-    })
+    Ok(jetstream)
 }
 
 async fn get_or_create_key_value(

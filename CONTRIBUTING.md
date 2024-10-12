@@ -42,7 +42,7 @@ dagger call test --source=.
 Run these commands:
 
 ``` sh
-dagger call integration-lowkey-service --source=. --mittlife-cycles-source=../mittlife_cycles --local-dev-service=tcp://localhost:8080
+dagger call integration-lowkey-service --source=. --local-dev-service=tcp://localhost:8080
 ```
 
 ``` sh

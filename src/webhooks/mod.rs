@@ -30,7 +30,7 @@ async fn added(
 ) -> Result<String, actix_web::Error> {
     state
         .verifier
-        .lock() // TODO: lock not needed when using nats
+        .lock()
         .unwrap()
         .verify_request(body, request.headers())
         .await
