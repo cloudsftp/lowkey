@@ -30,13 +30,16 @@ func (l *Lowkey) IntegrationLowkeyService(
 	ctx context.Context,
 	source *dagger.Directory,
 	localDevService *dagger.Service,
+	// +optional
+	mittlifeSource *dagger.Directory,
 ) *dagger.Service {
 	natsService := l.BuildNatsService(ctx)
 
 	return l.
-		buildBaseImage(ctx, source).
+		buildBaseImage(ctx, source, mittlifeSource).
 		WithFile(".env", getEnvFile(source)).
 		WithServiceBinding("nats", natsService).
+		WithServiceBinding("local-dev", localDevService).
 		WithExec([]string{"/server"}).
 		AsService()
 }
