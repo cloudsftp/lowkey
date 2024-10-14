@@ -42,15 +42,15 @@ dagger call test --source=.
 Run these commands:
 
 ``` sh
-dagger call integration-lowkey-service --source=. --local-dev-service=tcp://localhost:8080
+dagger call integration-lowkey-service --source=. --local-dev-service=tcp://localhost:2048 up --ports 6670:6670
 ```
 
 ``` sh
-dagger call integration-local-dev-service --source=. --lowkey-service=tcp://localhost:6670 up --ports 8080:8080
+dagger call integration-local-dev-service --source=. --lowkey-service=tcp://localhost:6670 up --ports 2048:8080
 ```
 
 ``` sh
-dagger call integration-drive-tests --source=integration --lowkey-service=tcp://localhost:6670 --local-dev-service=tcp://localhost:8080
+dagger call integration-drive-tests --source=integration --lowkey-service=tcp://localhost:6670 --local-dev-service=tcp://localhost:2048
 ```
 
 Broken:

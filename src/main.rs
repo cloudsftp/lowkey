@@ -27,9 +27,9 @@ type WrappedState = Arc<State>;
 async fn main() -> Result<()> {
     dotenv().expect("could not load variables from .env");
 
+    env_logger::init();
     info!("starting server");
 
-    env_logger::init();
     let state = bootstrap().await?;
 
     HttpServer::new(move || {
@@ -55,12 +55,16 @@ async fn bootstrap() -> Result<WrappedState> {
         extension_instances,
     };
 
-    let api_configuration = build_config();
+    let mittwald_base_url = env::var("MITTWALD_URL")?;
+    let api_configuration = build_api_config(mittwald_base_url);
+
+    let key_provider_base_url = env::var("KEY_PROVIDER_URL")?;
+    let key_provider_api_configuration = build_api_config(key_provider_base_url);
 
     Ok(Arc::new(State {
         repository: Box::new(repository),
-        api_configuration: api_configuration.clone(),
-        verifier: Mutex::new(WebhookVerifier::new(api_configuration, keys)),
+        api_configuration,
+        verifier: Mutex::new(WebhookVerifier::new(key_provider_api_configuration, keys)),
     }))
 }
 
@@ -95,9 +99,9 @@ async fn get_or_create_key_value(
     }
 }
 
-fn build_config() -> Configuration {
+fn build_api_config(base_path: String) -> Configuration {
     Configuration {
-        base_path: "https://api.mittwald.de".to_string(),
+        base_path,
         user_agent: Some("lowkey via rusttwald".to_string()),
         client: Client::new(),
         basic_auth: None,

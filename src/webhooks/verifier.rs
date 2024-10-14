@@ -1,6 +1,7 @@
 use actix_web::{http::header::HeaderMap, web};
 use anyhow::Result;
 use async_nats::jetstream::kv::Store;
+use base64::prelude::*;
 use futures::StreamExt;
 use log::info;
 use mittlife_cycles::verification::{
@@ -87,12 +88,14 @@ struct RusttwaldFetcher {
 #[async_trait::async_trait]
 impl KeyFetcher for RusttwaldFetcher {
     async fn fetch(&self, serial: &str) -> Result<PublicKeyResponse> {
+        info!("api config for public key provider: {:?}", self.api_config);
+
         let public_key_response =
             rusttwald::apis::marketplace_api::extension_get_public_key(&self.api_config, serial)
                 .await?;
 
         Ok(PublicKeyResponse {
-            key_base64: String::from_utf8(public_key_response.key)?,
+            key_base64: BASE64_STANDARD.encode(public_key_response.key),
             serial: public_key_response.serial.to_string(),
         })
     }
