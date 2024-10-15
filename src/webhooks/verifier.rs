@@ -24,18 +24,19 @@ impl WebhookVerifier {
         }
     }
 
-    pub async fn verify_request(&mut self, body: web::Bytes, headers: &HeaderMap) -> Result<()> {
+    pub async fn verify_request(&self, body: web::Bytes, headers: &HeaderMap) -> Result<()> {
         info!("verifying request signature");
 
         let headers: MappedHeaders = headers.try_into()?;
         let serial = headers.get_serial();
-        let public_key = self.key_collection.get_or_fetch_key(serial).await?;
+        let public_key = self.key_collection.clone().get_or_fetch_key(serial).await?;
 
         self.verifier
             .verify_signature(&headers, &body.to_vec(), &public_key)
     }
 }
 
+#[derive(Debug, Clone)]
 struct NatsCache {
     keys: Store,
 }
@@ -81,6 +82,7 @@ impl Cache<ED25519PublicKey> for NatsCache {
     }
 }
 
+#[derive(Debug, Clone)]
 struct RusttwaldFetcher {
     api_config: Configuration,
 }

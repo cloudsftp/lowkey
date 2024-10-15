@@ -8,17 +8,14 @@ use dotenv::dotenv;
 use log::info;
 use reqwest::Client;
 use rusttwald::apis::configuration::Configuration;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::{env, sync::Arc};
 
 use crate::webhooks::verifier::WebhookVerifier;
 
 struct State {
     repository: Box<dyn persistence::Repository + Send + Sync>, // TODO: rename repository
     api_configuration: Configuration, // TODO: wrap in some kind of repository
-    verifier: Mutex<WebhookVerifier>, // TODO: remove mutex after using immutable webhook verifier
+    verifier: WebhookVerifier,
 }
 
 type WrappedState = Arc<State>;
@@ -64,7 +61,7 @@ async fn bootstrap() -> Result<WrappedState> {
     Ok(Arc::new(State {
         repository: Box::new(repository),
         api_configuration,
-        verifier: Mutex::new(WebhookVerifier::new(key_provider_api_configuration, keys)),
+        verifier: WebhookVerifier::new(key_provider_api_configuration, keys),
     }))
 }
 
