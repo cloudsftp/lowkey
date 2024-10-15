@@ -50,7 +50,7 @@ dagger call integration-local-dev-service --source=. --lowkey-service=tcp://loca
 ```
 
 ``` sh
-dagger call integration-drive-tests --source=integration --lowkey-service=tcp://localhost:6670 --local-dev-service=tcp://localhost:2048
+dagger call integration-drive-tests --source=. --lowkey-service=tcp://localhost:6670 --local-dev-service=tcp://localhost:2048
 ```
 
 Broken:

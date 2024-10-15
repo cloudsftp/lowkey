@@ -65,10 +65,6 @@ func (m *Lowkey) IntegrationLocalDevService(
 		AsService()
 }
 
-func getEnvFile(source *dagger.Directory) *dagger.File {
-	return source.File(".env")
-}
-
 func (m *Lowkey) IntegrationDriveTests(
 	ctx context.Context,
 	source *dagger.Directory,
@@ -84,13 +80,20 @@ func (m *Lowkey) IntegrationDriveTests(
 		WithMountedCache("/go/build-cache", dag.CacheVolume("go-build")).
 		WithEnvVariable("GOCACHE", "/go/build-cache").
 
-		// Execute tests
-		WithDirectory("/src", source).
+		// Sources
+		WithDirectory("/src", source.Directory("integration")).
 		WithWorkdir("/src").
+		WithFile(".env", getEnvFile(source)).
+
+		// Services
 		WithServiceBinding("lowkey-api", lowkeyService).
 		WithServiceBinding("local-dev", localDevService).
-		WithExec([]string{"go", "test", "-count=1", "./..."}).
 
-		// Run
+		// Execute tests
+		WithExec([]string{"go", "test", "-count=1", "./..."}).
 		Stdout(ctx)
+}
+
+func getEnvFile(source *dagger.Directory) *dagger.File {
+	return source.File(".env")
 }

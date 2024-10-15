@@ -3,7 +3,9 @@ package webhooks
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/cloudsftp/lowkey/integration/pointer"
 )
@@ -25,8 +27,10 @@ func (s *WebhooksTestSuite) assertWebhookCall(
 	err := requestBodyEncoder.Encode(config.WebhookCallRequest)
 	s.NoError(err, "encoutered error when encoding the webhook call request")
 
+	localDevHost := os.Getenv("LOCAL_DEV_URL")
+
 	response, err := http.Post(
-		"http://local-dev:8080/internal/calls/"+webhookType,
+		fmt.Sprintf("%s/internal/calls/%s", localDevHost, webhookType),
 		"application/json",
 		&requestBody,
 	)

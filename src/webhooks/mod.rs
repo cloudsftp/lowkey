@@ -1,7 +1,7 @@
 pub mod verifier;
 
 use actix_web::{error::ErrorBadRequest, post, web, HttpRequest};
-use log::info;
+use log::{error, info};
 use serde::Deserialize;
 
 use crate::WrappedState;
@@ -32,6 +32,7 @@ async fn added(
         .verifier
         .verify_request(body, request.headers())
         .await
+        .inspect_err(|err| error!("while verifying webhook: {}", err))
         .map_err(ErrorBadRequest)?;
 
     info!("Extension instance added: {:?}", path);
