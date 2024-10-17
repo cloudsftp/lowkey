@@ -1431,9 +1431,9 @@ dependencies = [
 
 [[package]]
 name = "mittlife_cycles"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52d33202e7b0173a42511fecc050fd58aafe7db0e2fed585dfd25e80b0575315"
+checksum = "0f097dc407ec49bc69ca48066e6c6a65e43fa131a2f199d5ad1c95dc87ec8316"
 dependencies = [
  "actix-web",
  "anyhow",
