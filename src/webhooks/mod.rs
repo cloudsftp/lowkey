@@ -87,12 +87,10 @@ struct SecretRotatedPath {
     instance_id: String,
 }
 
-/*
 #[derive(Debug, Deserialize)]
 struct SecretRotatedBody {
     secret: String,
 }
-*/
 
 #[post("/secret-rotated/{instance_id}")]
 async fn secret_rotated(
@@ -108,8 +106,10 @@ async fn secret_rotated(
     );
     verify_webhook(&state, &payload, &request).await?;
 
+    let body: SecretRotatedBody = serde_json::de::from_slice(&payload).map_err(ErrorBadRequest)?;
+
     let _ = path.instance_id;
-    //let _ = body.secret;
+    let _ = body.secret;
 
     info!("Rotated extension instance secret ({:?})", path);
 
