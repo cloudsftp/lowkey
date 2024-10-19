@@ -1,10 +1,13 @@
 pub mod verifier;
 
-use actix_web::{error::ErrorBadRequest, post, web, HttpRequest};
+use actix_web::{
+    error::{ErrorBadRequest, ErrorInternalServerError},
+    post, web, HttpRequest,
+};
 use log::{error, info};
 use serde::Deserialize;
 
-use crate::WrappedState;
+use crate::{persistence::ExtensionInstance, WrappedState};
 
 pub fn build_service() -> actix_web::Scope {
     web::scope("extension")
@@ -20,28 +23,36 @@ struct AddedToContextPath {
     context_id: String,
 }
 
-#[allow(clippy::await_holding_lock)]
+#[derive(Debug, Deserialize)]
+struct AddedToContextBody {
+    secret: String,
+}
+
 #[post("/added/{instance_id}/{context_id}")]
 async fn added(
-    body: web::Bytes,
+    payload: web::Bytes,
     request: HttpRequest,
     state: web::Data<WrappedState>,
     path: web::Path<AddedToContextPath>,
 ) -> Result<String, actix_web::Error> {
-    state
-        .verifier
-        .verify_request(body, request.headers())
-        .await
-        .inspect_err(|err| error!("while verifying webhook: {}", err))
-        .map_err(ErrorBadRequest)?;
+    info!("Received webhook to add an extension instance ({:?})", path);
+    verify_webhook(&state, &payload, &request).await?;
 
-    info!("Extension instance added: {:?}", path);
+    let body: AddedToContextBody = serde_json::de::from_slice(&payload).map_err(ErrorBadRequest)?;
+
+    let instance = ExtensionInstance {
+        id: path.instance_id.clone(),
+        context_id: path.context_id.clone(),
+        secret: body.secret.clone(),
+    };
 
     state
         .repository
-        .create_extension_instance(&path.instance_id, &path.context_id)
+        .create_extension_instance(&instance)
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+        .map_err(ErrorInternalServerError)?;
+
+    info!("Added extension instance ({:?})", path);
 
     Ok("Ok".to_string())
 }
@@ -53,12 +64,20 @@ struct UpdatedPath {
 
 #[post("/updated/{instance_id}")]
 async fn updated(
-    _: web::Data<WrappedState>,
+    payload: web::Bytes,
+    request: HttpRequest,
+    state: web::Data<WrappedState>,
     path: web::Path<UpdatedPath>,
 ) -> Result<String, actix_web::Error> {
-    info!("Extension instance updated: {:?}", path);
+    info!(
+        "Received webhook to update an extension instance ({:?})",
+        path
+    );
+    verify_webhook(&state, &payload, &request).await?;
 
     let _ = path.instance_id;
+
+    info!("Updated extension instance ({:?})", path);
 
     Ok("Ok".to_string())
 }
@@ -68,21 +87,31 @@ struct SecretRotatedPath {
     instance_id: String,
 }
 
+/*
 #[derive(Debug, Deserialize)]
 struct SecretRotatedBody {
     secret: String,
 }
+*/
 
 #[post("/secret-rotated/{instance_id}")]
 async fn secret_rotated(
-    _: web::Data<WrappedState>,
+    payload: web::Bytes,
+    request: HttpRequest,
+    state: web::Data<WrappedState>,
     path: web::Path<SecretRotatedPath>,
-    body: web::Json<SecretRotatedBody>,
+    //body: web::Json<SecretRotatedBody>,
 ) -> Result<String, actix_web::Error> {
-    info!("Extension instance secret rotated: {:?}, {:?}", path, body);
+    info!(
+        "Received webhook to rotate an extension instance secret ({:?})",
+        path,
+    );
+    verify_webhook(&state, &payload, &request).await?;
 
     let _ = path.instance_id;
-    let _ = body.secret;
+    //let _ = body.secret;
+
+    info!("Rotated extension instance secret ({:?})", path);
 
     Ok("Ok".to_string())
 }
@@ -94,16 +123,37 @@ struct RemovedPath {
 
 #[post("/removed/{instance_id}")]
 async fn removed(
+    payload: web::Bytes,
+    request: HttpRequest,
     state: web::Data<WrappedState>,
     path: web::Path<RemovedPath>,
 ) -> Result<String, actix_web::Error> {
-    info!("Extension instance removed: {:?}", path);
+    info!(
+        "Received webhook to remove an extension instance ({:?})",
+        path,
+    );
+    verify_webhook(&state, &payload, &request).await?;
 
     state
         .repository
         .delete_extension_instance(&path.instance_id)
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+        .map_err(ErrorInternalServerError)?;
+
+    info!("Removed extension instance ({:?})", path);
 
     Ok("Ok".to_string())
+}
+
+async fn verify_webhook(
+    state: &web::Data<WrappedState>,
+    payload: &web::Bytes,
+    request: &HttpRequest,
+) -> Result<(), actix_web::Error> {
+    state
+        .verifier
+        .verify_request(payload.clone(), request.headers())
+        .await
+        .inspect_err(|err| error!("Could not verify webhook: {}", err))
+        .map_err(ErrorBadRequest)
 }

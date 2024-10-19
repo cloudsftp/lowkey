@@ -7,18 +7,10 @@ detailedDescriptions:
     markdown: |-
       # lowkey
       ## Time-tracking leicht gemacht.
-    plain: |-
-      lowkey
-
-      Time-tracking leicht gemacht.
   en:
     markdown: |-
       # lowkey
       ## Time-tracking made easy.
-    plain: |-
-      lowkey
-
-      Time-tracking made easy.
 extensionContext: customer
 requiredScopes:
   - customer:read
@@ -41,6 +33,6 @@ tags:
   - time-tracking
   - productivity
 state:
-  hidden: true
-  disabled: false
-  blocked: false
+  published: false
+  verified: true
+  functional: false

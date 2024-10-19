@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"dagger/lowkey/internal/dagger"
 )
@@ -90,6 +91,7 @@ func (m *Lowkey) IntegrationDriveTests(
 		WithServiceBinding("local-dev", localDevService).
 
 		// Execute tests
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithExec([]string{"go", "test", "-count=1", "./..."}).
 		Stdout(ctx)
 }

@@ -5,17 +5,20 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ExtensionInstance {
-    context_id: String,
+pub struct ExtensionInstance {
+    pub id: String,
+    pub context_id: String,
+    pub secret: String,
 }
 
 #[async_trait]
 pub trait Repository: Debug {
-    async fn create_extension_instance(&self, instance_id: &str, context_id: &str) -> Result<()>;
+    async fn create_extension_instance(&self, instance: &ExtensionInstance) -> Result<()>;
     async fn delete_extension_instance(&self, instance_id: &str) -> Result<()>;
 }
 
 pub mod nats {
+    use super::ExtensionInstance;
     use anyhow::Result;
     use async_nats::jetstream::kv::Store;
     use async_trait::async_trait;
@@ -27,15 +30,8 @@ pub mod nats {
 
     #[async_trait]
     impl super::Repository for NatsRepository {
-        async fn create_extension_instance(
-            &self,
-            instance_id: &str,
-            context_id: &str,
-        ) -> Result<()> {
-            let instance = super::ExtensionInstance {
-                context_id: context_id.into(),
-            };
-
+        async fn create_extension_instance(&self, instance: &ExtensionInstance) -> Result<()> {
+            let instance_id = instance.id.clone();
             let instance = bson::ser::to_document(&instance)?;
 
             let mut encoded: Vec<u8> = Vec::new();
