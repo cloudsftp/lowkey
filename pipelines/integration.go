@@ -9,23 +9,45 @@ import (
 
 const LocalDevServerVersion = "1.3.32"
 
-/*
 func (l *Lowkey) TestIntegration(
 	ctx context.Context,
 	source *dagger.Directory,
 	// +optional
+	mittlifeSource *dagger.Directory,
+	// +optional
 	devServerExecutable *dagger.File,
 ) (string, error) {
-	lowkeyService := l.BuildLowkeyService(ctx, source)
-	localDevService := l.BuildLocalDevService(ctx, source, lowkeyService, devServerExecutable)
+	/*
+		lowkeyService := l.BuildLowkeyService(ctx, source)
+		localDevService := l.BuildLocalDevService(ctx, source, lowkeyService, devServerExecutable)
 
-	return cachedGoBuilder(source.Directory("integration")).
-		WithServiceBinding("lowkey-api", lowkeyService).
-		WithServiceBinding("local-dev", localDevService).
-		WithExec([]string{"go", "test", "-count=1", "./..."}).
+		return cachedGoBuilder(source.Directory("integration")).
+			WithServiceBinding("lowkey-api", lowkeyService).
+			WithServiceBinding("local-dev", localDevService).
+			WithExec([]string{"go", "test", "-count=1", "./..."}).
+			Stdout(ctx)
+	*/
+	natsService := l.BuildNatsService(ctx)
+
+	_, err := l.buildBaseImage(ctx, source, mittlifeSource).
+		WithFile(".env", getEnvFile(source)).
+		WithServiceBinding("nats", natsService).
+		WithExec([]string{"/server"}).
+		AsService().
+		WithHostname("lowkey").
+		Start(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return dag.Container().
+		From("ubuntu:latest").
+		WithExec([]string{"apt", "update"}).
+		WithExec([]string{"apt", "upgrade", "-y"}).
+		WithExec([]string{"apt", "install", "curl", "-y"}).
+		WithExec([]string{"curl", "http://lowkey:6670/hey"}).
 		Stdout(ctx)
 }
-*/
 
 func (l *Lowkey) IntegrationLowkeyService(
 	ctx context.Context,
