@@ -7,7 +7,7 @@ import (
 	"dagger/lowkey/internal/dagger"
 )
 
-const LocalDevServerVersion = "1.3.6"
+const LocalDevServerVersion = "1.3.32"
 
 /*
 func (l *Lowkey) TestIntegration(
