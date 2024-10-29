@@ -37,7 +37,7 @@ func buildLocalDevServiceFromImage(
 		Container().
 		From("mittwald/marketplace-local-dev-server:1.3.6").
 		WithFile(".env", source.File(".env")).
-		WithServiceBinding("lowkey-api", lowkeyService).
+		WithServiceBinding("lowkey", lowkeyService).
 		AsService()
 }
 
@@ -53,7 +53,7 @@ func buildLocalDevServiceFromSource(
 		WithExposedPort(8080).
 		WithFile(".env", source.File(".env")).
 		WithFile("local-dev-server", devServerExecutable).
-		WithServiceBinding("lowkey-api", lowkeyService).
+		WithServiceBinding("lowkey", lowkeyService).
 		WithExec([]string{"./local-dev-server"}).
 		AsService()
 }

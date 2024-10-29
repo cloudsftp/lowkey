@@ -9,7 +9,7 @@ import (
 )
 
 func TestLowkeyAPI(t *testing.T) {
-	res, err := http.Get("http://lowkey-api:6670/hey")
+	res, err := http.Get("http://lowkey:6670/hey")
 	require.NoError(t, err)
 	defer res.Body.Close()
 
