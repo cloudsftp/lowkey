@@ -55,13 +55,11 @@ func (l *Lowkey) BuildAndTestAll(
 
 		l.BuildImage(ctx, source, mittlifeSource)
 
-		/*
-			_, err := l.TestIntegration(ctx, source, mittlifeCyclesSource, devServerExecutable)
-			if err != nil {
-				errors <- err
-				return
-			}
-		*/
+		_, err := l.TestIntegration(ctx, source, mittlifeSource)
+		if err != nil {
+			errors <- err
+			return
+		}
 
 		wg.Done()
 	}()
